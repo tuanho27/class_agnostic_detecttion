@@ -15,6 +15,7 @@ pip install -v -e .
 cd ..
 python setup.py
 conda install mpmath pandas -y
+conda install -c conda-forge json_tricks -y
 pip install torch_dct
 pip install -e mmdetection/mmdet/models/backbones/pytorch-image-models
 ```

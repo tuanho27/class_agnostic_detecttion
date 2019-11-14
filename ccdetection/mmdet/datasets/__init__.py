@@ -9,8 +9,7 @@ from .voc import VOCDataset
 from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 from .augmentation.data_augmentation import ObjDetAugmentation, ColorAutoAugmentation, StyleAugmentation
-
-from .cloud import CloudDataset
+from .mpii import MPIIDataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'VOCDataset',
@@ -18,5 +17,5 @@ __all__ = [
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
     'DATASETS', 'build_dataset',
     'ObjDetAugmentation', 'ColorAutoAugmentation', 'StyleAugmentation',
-    'CloudDataset',
+    'MPIIDataset',
 ]
