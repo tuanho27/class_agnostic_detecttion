@@ -101,7 +101,7 @@ class MaskSingleStateDetector(BaseDetector):
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
         proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
         
-        # TODO: Create a dump sampling in here to match with format of fcn_mask
+        # Sampling the Proposal to match with format of fcn_mask
         bbox_assigner = build_assigner(self.train_cfg.rcnn.assigner)
         bbox_sampler  = build_sampler(self.train_cfg.rcnn.sampler, context=self)            
         num_imgs = img.size(0)

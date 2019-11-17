@@ -2,13 +2,13 @@
 
 PYTHON=${PYTHON:-"python"}
 
-CONFIG_FILE=ccdetection/configs/clouds/reppoints_moment_x50_dcn_nasfpn_cloud.py
-WORK_DIR=/home/chuong//Workspace/Experiments/cloud/reppoints_moment_x50_dcn_nasfpn_cloud/v1
+CONFIG_FILE=ccdetection/configs/mask_rcnn_r50_fpn_1x.py
+WORK_DIR=/home/chuong//Workspace/Experiments/mask_rcnn_r50_fpn_1x/v1
 
 th=12
 CHECKPOINT_FILE=${WORK_DIR}/epoch_${th}.pth
-RESULT_FILE=${WORK_DIR}/epoch_${th}_025.pkl
-WRITE_TO=${WORK_DIR}/epoch_${th}_025.txt
+RESULT_FILE=${WORK_DIR}/epoch_${th}.pkl
+WRITE_TO=${WORK_DIR}/epoch_${th}.txt
 
 GPUS=2
 CUDA_VISIBLE_DEVICES=0,1
