@@ -31,8 +31,6 @@ model = dict(
         scales_per_octave=3,
         anchor_ratios=[0.5, 1.0, 2.0],
         anchor_strides=[8, 16, 32, 64, 128],
-        target_means=[.0, .0, .0, .0],
-        target_stds=[1.0, 1.0, 1.0, 1.0],
         # loss_cls=dict(type='FocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
         # loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0),
         loss_cls=dict(type='AutoFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.5, loss_weight=1.0),
@@ -123,7 +121,7 @@ test_pipeline = [
 ]
 data = dict(
     imgs_per_gpu=16,
-    workers_per_gpu=16,
+    workers_per_gpu=10,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
