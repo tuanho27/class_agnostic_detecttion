@@ -125,3 +125,5 @@ work_dirs/
 
 # Pytorch
 *.pth
+.gitmessage.txt
+.mycommitmsg.txt
