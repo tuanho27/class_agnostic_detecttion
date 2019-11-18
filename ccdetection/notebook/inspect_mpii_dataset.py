@@ -12,12 +12,12 @@ img_norm_cfg = dict(
 
 train_pipeline = [
 	dict(type='LoadImageFromFile'),
-	dict(type='LoadPoseAnnotations', with_joints=True, with_heatmap=True),
+	dict(type='LoadPoseAnnotations', with_joints=True, with_heatmap=True, gauss_sigma=1, feat_stride=1),
 	dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
 	dict(type='RandomFlip', flip_ratio=0.5),
 	dict(type='Normalize', **img_norm_cfg),
 	dict(type='Pad', size_divisor=32),
-	dict(type='DefaultFormatBundle'),
+	dict(type='PoseFormatBundle'),
     dict(type='Collect',
         keys=['img', 'gt_joints', 'gt_heatmap'],
         meta_keys=('filename', 'ori_shape', 'img_shape', 'img_norm_cfg',

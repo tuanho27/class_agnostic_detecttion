@@ -1,8 +1,4 @@
-# CONFIG_FILE="ccdetection/configs/clouds/htc_hrnetv2p_w32_cloud.py"
-# CONFIG_FILE="ccdetection/configs/clouds/htc_x50gcb_fpn_cloud.py"
-# CONFIG_FILE="ccdetection/configs/clouds/htc_x50gcb_nasfpn_cloud.py"
-# CONFIG_FILE="ccdetection/configs/clouds/reppoints_moment_x50_dcn_nasfpn_cloud.py"
-CONFIG_FILE="ccdetection/configs/clouds/retina_x50gcb_nasfpn_cloud.py"
+CONFIG_FILE="mmdetection/configs/retinanet_r50_fpn_1x.py"
 GPUS=2
 SEED=0
 

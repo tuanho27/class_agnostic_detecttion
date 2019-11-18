@@ -83,7 +83,6 @@ class JointsDataset(Dataset):
     def pre_pipeline(self, results):
         results['img_prefix'] = self.img_prefix
         results['bbox_fields'] = []
-        results['point_fields'] = []
         results['mask_fields'] = []
 
     def _filter_imgs(self, min_size=32):

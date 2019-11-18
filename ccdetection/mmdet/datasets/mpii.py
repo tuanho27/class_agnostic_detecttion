@@ -34,7 +34,7 @@ class MPIIDataset(JointsDataset):
         info = self.img_infos[idx]
         img_info = dict(filename=info['filename'],
                         width=info['width'],height=info['height'])
-        ann_info = dict(joints=info['joints'],joints_vis=info['joints'])
+        ann_info = dict(joints=info['joints'],joints_vis=info['joints_vis'])
         return dict(img_info=img_info, ann_info=ann_info)
 
     def evaluate(self, cfg, preds, output_dir, *args, **kwargs):

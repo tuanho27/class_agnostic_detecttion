@@ -4,8 +4,9 @@ import warnings
 import mmcv
 import numpy as np
 
+from mmcv.parallel import DataContainer as DC
+from mmdet.datasets.pipelines import to_tensor
 from ..registry import PIPELINES
-
 
 @PIPELINES.register_module
 class LoadPoseAnnotations(object):
@@ -15,8 +16,8 @@ class LoadPoseAnnotations(object):
 				 with_affinity=False,
 				 with_PIF=False,
 				 with_PAF=False,
-				 feat_stride=4,
 				 gauss_sigma=3,
+				 feat_stride=4,
 				 skip_img_without_anno=True):
 		assert with_joints
 		assert with_heatmap
@@ -32,11 +33,10 @@ class LoadPoseAnnotations(object):
 
 	def _load_joints(self, results):
 		ann_info = results['ann_info']
-		import pdb; pdb.set_trace()
 		n_object = len(ann_info['joints'])
 		results['gt_joints'] = np.stack([joint/self.feat_stride for joint in ann_info['joints']],axis=0).reshape(n_object,-1)
 		results['gt_joints_vis'] = np.stack(ann_info['joints_vis'],axis=0)
-		results['point_fields'].append('gt_joints')
+		results['bbox_fields'].append('gt_joints')
 		return results
 
 	def _load_heatmap(self, results):
@@ -53,9 +53,10 @@ class LoadPoseAnnotations(object):
 		target = np.zeros((num_joints,heatmap_size[1],heatmap_size[0]),
 								dtype=np.float32)
 
-		for joints, joints_vis in zip(multi_joints, multi_joints_vis):
-			target_weight = np.ones((num_joints, 1), dtype=np.float32)
-			target_weight[:, 0] = joints_vis[:,0]
+		for joints, target_weight in zip(multi_joints, multi_joints_vis):
+			# target_weight = np.ones((num_joints, 1), dtype=np.float32)
+			# import pdb; pdb.set_trace()
+			# target_weight[:, 0] = joints_vis
 
 			for joint_id in range(num_joints):
 				mu_x = int(joints[joint_id][0] / self.feat_stride + 0.5)
@@ -116,3 +117,31 @@ class LoadPoseAnnotations(object):
 		return repr_str
 
 
+@PIPELINES.register_module
+class PoseFormatBundle(object):
+	"""Default formatting bundle.
+
+	It simplifies the pipeline of formatting common fields, including "img",
+	"gt_bboxes", "gt_joints", "gt_heatmap".
+	These fields are formatted as follows.
+
+	- img: (1)transpose, (2)to tensor, (3)to DataContainer (stack=True)
+	- gt_joints: (1)to tensor, (2)to DataContainer
+	- gt_heatmap: (1)to tensor, (2)to DataContainer (cpu_only=True)
+	"""
+
+	def __call__(self, results):
+		if 'img' in results:
+			img = np.ascontiguousarray(results['img'].transpose(2, 0, 1))
+			results['img'] = DC(to_tensor(img), stack=True)
+		for key in ['gt_bboxes', 'gt_bboxes_ignore', 'gt_joints']:
+			if key not in results:
+				continue
+			results[key] = DC(to_tensor(results[key]))
+		for key in ['gt_heatmap','gt_PIF','gt_PAF']:
+			if key in results:
+				results[key] = DC(results[key], cpu_only=True)
+		return results
+
+	def __repr__(self):
+		return self.__class__.__name__

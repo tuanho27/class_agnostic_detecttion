@@ -7,7 +7,7 @@ from .transforms import (Albu, Expand, MinIoURandomCrop, Normalize, Pad,
                          PhotoMetricDistortion, RandomCrop, RandomFlip, Resize,
                          SegResizeFlipPadRescale)
 
-from .loading_pose import LoadPoseAnnotations
+from .pose_pipeline import LoadPoseAnnotations, PoseFormatBundle
 
 __all__ = [
     'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
@@ -16,5 +16,5 @@ __all__ = [
     'RandomCrop', 'Normalize', 'SegResizeFlipPadRescale', 'MinIoURandomCrop',
     'Expand', 'PhotoMetricDistortion', 'Albu',
     # CC added
-    'LoadPoseAnnotations'
+    'LoadPoseAnnotations', 'PoseFormatBundle'
 ]
