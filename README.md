@@ -1,9 +1,10 @@
 ## SetUp
 ```bash
-conda create -n ccdet python=3.7 -y
-conda activate ccdet
+conda create -n ccdetpose python=3.7 -y
+conda activate ccdetpose
 
-conda install pytorch=1.2 torchvision -c pytorch cython -y
+conda install pytorch=1.2 torchvision -c pytorch -y
+conda install cython pyyaml -y
 
 #Setup mmdetection
 rm -rf mmdetection
