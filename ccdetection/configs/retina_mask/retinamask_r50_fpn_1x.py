@@ -1,6 +1,7 @@
 work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
 data_root= '/home/member/Workspace/dataset/coco/'
 # model settings
+fp16 = dict(loss_scale=512.)
 model = dict(
     type='RetinaMask',
     pretrained='torchvision://resnet50',
