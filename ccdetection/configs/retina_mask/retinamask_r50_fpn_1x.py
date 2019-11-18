@@ -11,14 +11,16 @@ model = dict(
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        style='pytorch'),
+        style='pytorch',
+    ),
     neck=dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         start_level=1,
         add_extra_convs=True,
-        num_outs=5),
+        num_outs=5,
+    ),
     bbox_head=dict(
         type='RetinaHead',
         num_classes=81,
@@ -31,27 +33,24 @@ model = dict(
         anchor_strides=[8, 16, 32, 64, 128],
         target_means=[.0, .0, .0, .0],
         target_stds=[1.0, 1.0, 1.0, 1.0],
-        loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=2.0,
-            alpha=0.25,
-            loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0)),
+        loss_cls=dict(type='FocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
+        loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0),
+    ),
     mask_roi_extractor=dict(
         type='SingleRoIExtractor',
         roi_layer=dict(type='RoIAlign', out_size=14, sample_num=2),
         out_channels=256,
-        featmap_strides=[4, 8, 16, 32]),
+        featmap_strides=[4, 8, 16, 32],
+    ),
     mask_head=dict(
         type='FCNMaskHead',
         num_convs=4,
         in_channels=256,
         conv_out_channels=256,
         num_classes=81,
-        loss_mask=dict(
-            type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))
-    )
+        loss_mask=dict(type='CrossEntropyLoss', use_mask=True, loss_weight=1.0),
+    ),
+)
 # training and testing settings
 train_cfg = dict(
     assigner=dict(
