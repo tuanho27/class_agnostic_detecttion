@@ -22,8 +22,8 @@ elif '184' in gethostname():
 	fp16 = dict(loss_scale=512.)
 
 elif '185' in gethostname():
-	lr_start = 2e-2
-	lr_end = 2e-4
+	lr_start = 1e-2
+	lr_end = 1e-4
 	imgs_per_gpu = 16
 	total_epochs = 12
 	resume_from = None
