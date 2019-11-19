@@ -9,7 +9,7 @@ from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 
 
 @DETECTORS.register_module
-class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
+class MaskSingleStateDetector(BaseDetector):
 	"""Base class for single-stage detectors.
 
 	Single-stage detectors directly and densely predict bounding boxes on the
@@ -129,6 +129,28 @@ class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
 		else:
 			segm_results = self.simple_test_mask(x, img_meta, det_bboxes, det_labels, rescale=rescale)
 			return bbox_results, segm_results
+
+    def simple_test_mask(self, x, img_meta, det_bboxes, det_labels, rescale=False):
+        # image shape of the first image in the batch (only one)
+        ori_shape = img_meta[0]['ori_shape']
+        scale_factor = img_meta[0]['scale_factor']
+
+        if det_bboxes.shape[0] == 0:
+            segm_result = [[] for _ in range(self.mask_head.num_classes - 1)]
+
+        else:
+            # if det_bboxes is rescaled to the original image size, we need to rescale it back to the testing scale to obtain RoIs.
+            _bboxes = (det_bboxes[:, :4] * scale_factor if rescale else det_bboxes)
+            mask_rois = bbox2roi([_bboxes])
+            mask_feats = self.mask_roi_extractor(x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
+
+            if self.with_shared_head:
+                mask_feats = self.shared_head(mask_feats)
+
+            mask_pred = self.mask_head(mask_feats)
+            segm_result = self.mask_head.get_seg_masks(mask_pred, _bboxes, det_labels, self.test_cfg, ori_shape, scale_factor, rescale)
+
+        return segm_result
 
 	def aug_test(self, imgs, img_metas, rescale=False):
 		raise NotImplementedError
