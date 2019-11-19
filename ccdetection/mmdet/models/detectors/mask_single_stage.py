@@ -7,8 +7,9 @@ from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 
+
 @DETECTORS.register_module
-class MaskSingleStateDetector(BaseDetector):
+class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
 	"""Base class for single-stage detectors.
 
 	Single-stage detectors directly and densely predict bounding boxes on the
@@ -111,7 +112,11 @@ class MaskSingleStateDetector(BaseDetector):
 		losses.update(loss_mask)
 		return losses
 
-	def simple_test(self, img, img_meta, rescale=False):
+    def simple_test(self, img, img_meta, proposals=None, rescale=False):
+        """Test without augmentation."""
+        assert self.with_bbox, "Bbox head must be implemented."
+
+		# BBox
 		x = self.extract_feat(img)
 		outs = self.bbox_head(x)
 		bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
@@ -120,7 +125,13 @@ class MaskSingleStateDetector(BaseDetector):
 			bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
 			for det_bboxes, det_labels in bbox_list
 		]
-		return bbox_results[0]
+
+		# Mask
+        if not self.with_mask:
+            return bbox_results
+        else:
+            segm_results = self.simple_test_mask(x, img_meta, det_bboxes, det_labels, rescale=rescale)
+            return bbox_results, segm_results
 
 	def aug_test(self, imgs, img_metas, rescale=False):
 		raise NotImplementedError
