@@ -10,6 +10,7 @@ from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 from .augmentation.data_augmentation import ObjDetAugmentation, ColorAutoAugmentation, StyleAugmentation
 from .mpii import MPIIDataset
+from .coco_polar import Coco_Seg_Dataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'VOCDataset',
@@ -17,5 +18,5 @@ __all__ = [
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
     'DATASETS', 'build_dataset',
     'ObjDetAugmentation', 'ColorAutoAugmentation', 'StyleAugmentation',
-    'MPIIDataset',
+    'MPIIDataset', 'Coco_Seg_Dataset',
 ]

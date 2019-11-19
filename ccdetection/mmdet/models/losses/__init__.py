@@ -13,6 +13,7 @@ from .auto_focal_loss import AutoFocalLoss, AutoFocalLoss_Regression
 from .adaptive_robust_loss import AdaptiveRobustLoss_C, AdaptiveRobustLoss_R
 from .focal_kl_loss import FocalKLLoss
 from .generalized_iou_loss import GeneralizedIOULoss
+from .mask_iou_loss import MaskIOULoss, MaskIOULoss_v2, MaskIOULoss_v3
 
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     'AdaptiveRobustLoss_C', 'AdaptiveRobustLoss_R',
     'FocalKLLoss',
     'GeneralizedIOULoss',
+    'MaskIOULoss', 'MaskIOULoss_v2', 'MaskIOULoss_v3',
 ]

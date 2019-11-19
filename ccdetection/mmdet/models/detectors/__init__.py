@@ -16,7 +16,7 @@ from .single_stage import SingleStageDetector
 from .two_stage import TwoStageDetector
 from .mask_single_stage import MaskSingleStateDetector
 from .retinamask import RetinaMask
-
+from .polarmask import PolarMask
 
 __all__ = [
     'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -25,4 +25,5 @@ __all__ = [
     'RepPointsDetector', 'FOVEA',
     #CC
     'MaskSingleStateDetector', 'RetinaMask',
+    'PolarMask',
 ]
