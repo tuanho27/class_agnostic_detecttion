@@ -7,6 +7,7 @@ from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 
+
 @DETECTORS.register_module
 class MaskSingleStateDetector(BaseDetector):
     """Base class for single-stage detectors.
