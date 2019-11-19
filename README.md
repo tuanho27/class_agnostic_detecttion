@@ -3,7 +3,7 @@
 conda create -n ccdetpose python=3.7 -y
 conda activate ccdetpose
 
-conda install pytorch=1.2 torchvision -c pytorch -y
+conda install pytorch=1.2 torchvision cudatoolkit=10.0 -c pytorch -y 
 conda install cython pyyaml -y
 
 #Setup mmdetection
@@ -11,7 +11,7 @@ rm -rf mmdetection
 git clone https://github.com/open-mmlab/mmdetection.git
 cd mmdetection
 git reset --hard 4d84161f142b7500089b0db001962bbc07aa869d
-pip install -v -e .
+python setup.py develop
 
 # Create symbolic link from ccdetection to mmdetection
 cd ..
