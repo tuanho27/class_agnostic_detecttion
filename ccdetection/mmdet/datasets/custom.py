@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from .pipelines import Compose
 from .registry import DATASETS
-
+from pyson.utils import memoize
 
 @DATASETS.register_module
 class CustomDataset(Dataset):
@@ -62,7 +62,9 @@ class CustomDataset(Dataset):
                 self.proposal_file = osp.join(self.data_root,
                                               self.proposal_file)
         # load annotations (and proposals)
+        timer = mmcv.Timer()
         self.img_infos = self.load_annotations(self.ann_file)
+        print("Loaded annotation times:", timer.since_start())
         if num_samples is not None:
             self.img_infos = self.img_infos[:num_samples]
 
@@ -84,7 +86,7 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         return len(self.img_infos)
-
+    
     def load_annotations(self, ann_file):
         return mmcv.load(ann_file)
 

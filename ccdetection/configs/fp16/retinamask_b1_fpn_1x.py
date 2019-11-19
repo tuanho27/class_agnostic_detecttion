@@ -1,16 +1,24 @@
-# debug
-debug=True
-num_samples = None
-workers_per_gpu = 2
-if debug:
-    num_samples = 200
-    workers_per_gpu = 1
+
 # fp16 settings
 fp16 = dict(loss_scale=512.)
 
 
 work_dir = 'work_dirs/retinamask_b1_fpn_1x.py'
 data_root= './dataset-coco/'
+
+
+# debug
+debug=True
+num_samples = None
+workers_per_gpu = 2
+train_ann_file=data_root + 'annotations/instances_train2017.json'
+train_img__dir='images/train2017/'
+if debug:
+    num_samples = 200
+    workers_per_gpu = 1
+    train_ann_file = data_root + 'annotations/instances_val2017.json'
+    train_img__dir='images/val2017/'
+
 # model settings
 # import ipdb; ipdb.set_trace()
 model = dict(
@@ -132,8 +140,8 @@ data = dict(
     workers_per_gpu=workers_per_gpu,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'images/train2017/',
+        ann_file=train_ann_file,
+        img_prefix=data_root + train_img__dir,
         pipeline=train_pipeline, num_samples=num_samples),
     val=dict(
         type=dataset_type,
