@@ -34,5 +34,6 @@ for f in ccfiles:
 		os.unlink(dst_file)
 	if os.path.exists(dst_file) and '.py' in dst_file:
 		os.rename(dst_file, dst_file.replace('.py','backup.py'))
-	os.symlink(src_file, dst_file)
+	if not os.path.isdir(dst_file):
+		os.symlink(src_file, dst_file)
 
