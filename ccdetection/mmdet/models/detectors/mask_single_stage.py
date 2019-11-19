@@ -86,10 +86,11 @@ class MaskSingleStateDetector(BaseDetector):
                       gt_bboxes_ignore=None,
                       gt_masks=None):
         x = self.extract_feat(img)
-
         # BBox head
         outs = self.bbox_head(x)
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
+        # for _ in outs: print(_.shape)
+        # import ipdb; ipdb.set_trace()
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
 
@@ -136,6 +137,7 @@ class MaskSingleStateDetector(BaseDetector):
         loss_mask = self.mask_head.loss(mask_pred, mask_targets,
                                             pos_labels)
         losses.update(loss_mask)
+        import ipdb; ipdb.set_trace()
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):

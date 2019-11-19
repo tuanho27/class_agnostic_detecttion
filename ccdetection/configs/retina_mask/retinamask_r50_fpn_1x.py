@@ -1,3 +1,14 @@
+# debug
+debug=True
+num_samples = None
+workers_per_gpu = 2
+if debug:
+    num_samples = 200
+    workers_per_gpu = 1
+# fp16 settings
+fp16 = dict(loss_scale=512.)
+
+
 work_dir = 'work_dirs/retinamask_r50_fpn_1x'
 data_root= './dataset-coco/'
 # model settings
@@ -121,22 +132,22 @@ test_pipeline = [
 ]
 data = dict(
     imgs_per_gpu=2,
-    workers_per_gpu=2,
+    workers_per_gpu=workers_per_gpu,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
-        pipeline=train_pipeline),
+        pipeline=train_pipeline, num_samples=num_samples),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
-        pipeline=test_pipeline),
+        pipeline=test_pipeline, num_samples=num_samples),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
-        pipeline=test_pipeline))
+        pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
