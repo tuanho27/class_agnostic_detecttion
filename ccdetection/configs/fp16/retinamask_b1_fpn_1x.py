@@ -9,28 +9,16 @@ if debug:
 fp16 = dict(loss_scale=512.)
 
 
-work_dir = 'work_dirs/retinamask_r50_fpn_1x'
+work_dir = 'work_dirs/retinamask_b1_fpn_1x.py'
 data_root= './dataset-coco/'
 # model settings
+# import ipdb; ipdb.set_trace()
 model = dict(
     type='RetinaMask',
     pretrained=None,
     backbone=dict(
         type='EfficientNet',
-
     ),
-    # backbone=dict(
-    #     type='DENet',
-    #     model_name=model_name,  # Support V0,V2,V3,V4
-    #     fpn_feature=fpn_feature,
-    #     init_from_pretrain=False,
-    #     frozen_to_block_idx=-1,  # Not Include this block index
-    #     norm_eval=norm_eval,
-    #     max_channels=512,
-    #     norm_cfg=dict(type='BN', requires_grad=False) if norm_eval else dict(
-    #         type='SyncBN', requires_grad=True)
-    # ),
-
     neck=dict(
         type='FPN',
         in_channels=[24, 40, 112, 320],
@@ -170,7 +158,7 @@ lr_config = dict(
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=5,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')

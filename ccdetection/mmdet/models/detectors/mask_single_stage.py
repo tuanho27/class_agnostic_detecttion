@@ -86,6 +86,7 @@ class MaskSingleStateDetector(BaseDetector):
                       gt_bboxes_ignore=None,
                       gt_masks=None):
         x = self.extract_feat(img)
+        # import ipdb; ipdb.set_trace()
         # BBox head
         outs = self.bbox_head(x)
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
