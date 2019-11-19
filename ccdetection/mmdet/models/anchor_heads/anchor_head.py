@@ -153,7 +153,6 @@ class AnchorHead(nn.Module):
     def loss(self, cls_scores, bbox_preds, gt_bboxes, gt_labels, img_metas, cfg, gt_bboxes_ignore=None):
         featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
         assert len(featmap_sizes) == len(self.anchor_generators)
-        print("cls_scores", cls_scores[0].dtype, "bbox_preds", bbox_preds[0].dtype)
 
         device = cls_scores[0].device
 
@@ -221,7 +220,6 @@ class AnchorHead(nn.Module):
         """
         assert len(cls_scores) == len(bbox_preds)
         num_levels = len(cls_scores)
-        print("cls_scores", cls_scores[0].dtype, "bbox_preds", bbox_preds[0].dtype)
 
         device = cls_scores[0].device
         mlvl_anchors = [
