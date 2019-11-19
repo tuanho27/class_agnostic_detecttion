@@ -25,7 +25,7 @@ def mask_focal_loss(pred, target, label, alpha=0.25, gamma=2.0, reduction='mean'
 class SegmFocalLoss(nn.Module):
 
 	def __init__(self, use_sigmoid=True, gamma=2.0, alpha=0.25, reduction='mean', loss_weight=1.0):
-		super(FocalLoss, self).__init__()
+		super(SegmFocalLoss, self).__init__()
 		assert use_sigmoid is True, 'Only sigmoid focal loss supported now.'
 		self.use_sigmoid = use_sigmoid
 		self.gamma = gamma
