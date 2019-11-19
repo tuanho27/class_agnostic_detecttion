@@ -1,20 +1,26 @@
-work_dir = './work_dirs/polar_768_1x_r50'
+work_dir = './work_dirs/polar_768_1x_effb1'
 data_root = './datasets/coco/'
 # model settings
 model = dict(
     type='PolarMask',
-    pretrained='open-mmlab://resnet50_caffe',
+    #pretrained='open-mmlab://resnet50_caffe',
+    #backbone=dict(
+    #    type='ResNet',
+    #    depth=50,
+    #    num_stages=4,
+    #    out_indices=(0, 1, 2, 3),
+    #    frozen_stages=1,
+    #    norm_cfg=dict(type='BN', requires_grad=False),
+    #    style='caffe'),
+    pretrained=None,
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=1,
-        norm_cfg=dict(type='BN', requires_grad=False),
-        style='caffe'),
+        type='TimmCollection',
+        model_name='efficientnet_b1',
+        ),
     neck=dict(
         type='FPN',
-        in_channels=[256, 512, 1024, 2048],
+        #in_channels=[256, 512, 1024, 2048],
+        in_channels=[24, 40, 112, 320],
         out_channels=256,
         start_level=1,
         add_extra_convs=True,

@@ -134,18 +134,18 @@ class TimmCollection(nn.Module):
 
 
         if feature_idxs is None:
-            inputs = torch.zeros([2, 3, 128, 128])
+            inputs = torch.zeros([2, 3, 256, 256])
             outs = self.model.extract_features(inputs, None)
-            scale = [int(128/_.shape[-1]) for _ in outs]
+            scale = [int(256/_.shape[-1]) for _ in outs]
             self.feature_idxs  = get_default_feature_index(scale)
-            # print(scale, self.feature_idxs)
-            # print('feature_idxs: ', self.feature_idxs)
         else:
             self.feature_idxs = feature_idxs
 
     def forward(self, x):
         outs = self.model.extract_features(x, feature_idxs = self.feature_idxs)
-        return outs
+        #return outs
+        #import ipdb; ipdb.set_trace()
+        return tuple([out for out in outs])
 
 
     def init_weights(self, pretrained):
