@@ -5,6 +5,7 @@ if 'X399' in gethostname():
 	imgs_per_gpu = 2
 	total_epochs = 12
 	load_from = None
+	resume_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root = '/home/cybercore/Workspace/dataset/coco/'
 	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_newloss/'
@@ -14,6 +15,7 @@ elif '184' in gethostname():
 	imgs_per_gpu = 16
 	total_epochs = 12
 	load_from = None
+	resume_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
 	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
@@ -23,6 +25,7 @@ elif '185' in gethostname():
 	imgs_per_gpu = 8
 	total_epochs = 12
 	load_from = None
+	resume_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
 	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
@@ -32,6 +35,7 @@ elif '186' in gethostname():
 	imgs_per_gpu = 16
 	total_epochs = 12
 	load_from = None
+	resume_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/user/thuync/datasets/coco/'
 	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
