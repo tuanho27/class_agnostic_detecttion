@@ -14,18 +14,18 @@ if 'X399' in gethostname():
 elif '184' in gethostname():
 	imgs_per_gpu = 16
 	total_epochs = 12
-	load_from = None
 	resume_from = None
+	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
 	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
 elif '185' in gethostname():
-	imgs_per_gpu = 8
+	imgs_per_gpu = 16
 	total_epochs = 12
-	load_from = None
 	resume_from = None
+	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
 	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
@@ -71,8 +71,8 @@ model = dict(
 		scales_per_octave=3,
 		anchor_ratios=[0.5, 1.0, 2.0],
 		anchor_strides=[8, 16, 32, 64, 128],
-		# loss_cls=dict(type='FocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
-		loss_cls=dict(type='AutoFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.5, loss_weight=1.0),
+		loss_cls=dict(type='FocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
+		# loss_cls=dict(type='AutoFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.5, loss_weight=1.0),
 		# loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0),
 		loss_bbox=dict(type='AdaptiveRobustLoss_R', num_dims=4, loss_weight=1.0),
 	),

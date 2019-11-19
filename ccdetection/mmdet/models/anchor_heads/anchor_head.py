@@ -273,7 +273,6 @@ class AnchorHead(nn.Module):
                 bbox_pred = bbox_pred[topk_inds, :]
                 scores = scores[topk_inds, :]
 
-            print(anchors.shape, anchors.dtype, bbox_pred.shape, bbox_pred.dtype)
             bboxes = delta2bbox(anchors, bbox_pred, self.target_means, self.target_stds, img_shape)
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
