@@ -40,7 +40,8 @@ class CustomDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
-                 test_mode=False):
+                 test_mode=False, num_samples=None):
+        # import ipdb; ipdb.set_trace()
         self.ann_file = ann_file
         self.data_root = data_root
         self.img_prefix = img_prefix
@@ -62,6 +63,9 @@ class CustomDataset(Dataset):
                                               self.proposal_file)
         # load annotations (and proposals)
         self.img_infos = self.load_annotations(self.ann_file)
+        if num_samples is not None:
+            self.img_infos = self.img_infos[:num_samples]
+
         if self.proposal_file is not None:
             self.proposals = self.load_proposals(self.proposal_file)
         else:
