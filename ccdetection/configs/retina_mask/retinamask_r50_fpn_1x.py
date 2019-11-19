@@ -90,7 +90,7 @@ model = dict(
 		in_channels=256,
 		conv_out_channels=256,
 		num_classes=81,
-		loss_mask=dict(type='SegmFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
+		loss_mask=dict(type='SegmFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=2.0),
 		# loss_mask=dict(type='CrossEntropyLoss', use_mask=True, loss_weight=1.0),
 	),
 )

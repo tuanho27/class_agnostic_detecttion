@@ -7,17 +7,28 @@ from ..registry import LOSSES
 from .utils import weight_reduce_loss
 
 
+def sigmoid_focal_loss(pred, target, weight=None, gamma=2.0, alpha=0.25, reduction='mean', avg_factor=None):
+    # Function.apply does not accept keyword arguments, so the decorator "weighted_loss" is not applicable
+    loss = _sigmoid_focal_loss(pred, target, gamma, alpha)
+    # TODO: find a proper way to handle the shape of weight
+    if weight is not None:
+        weight = weight.view(-1, 1)
+    loss = weight_reduce_loss(loss, weight, reduction, avg_factor)
+    return loss
+
+
 def mask_focal_loss(pred, target, label, alpha=0.25, gamma=2.0, reduction='mean', avg_factor=None):
 	assert reduction == 'mean' and avg_factor is None
 	num_rois = pred.size()[0]
 	inds = torch.arange(0, num_rois, dtype=torch.long, device=pred.device)
 	pred = pred[inds, label].squeeze(1)
 
-	pred_sigmoid = pred.sigmoid()
-	target = target.type_as(pred)
-	pt = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target)
-	focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * pt.pow(gamma)
-	loss = focal_weight * F.binary_cross_entropy_with_logits(pred, target, reduction='mean')
+	loss = sigmoid_focal_loss(
+		pred, target, weight=None,
+		alpha=alpha, gamma=gamma,
+		reduction=reduction,
+		avg_factor=avg_factor,
+	)
 	return loss
 
 
@@ -33,7 +44,7 @@ class SegmFocalLoss(nn.Module):
 		self.reduction = reduction
 		self.loss_weight = loss_weight
 
-	def forward(self, cls_score, label, weight=None, avg_factor=None, reduction_override=None, **kwargs):
+	def forward(self, cls_score, label, weight=None, avg_factor=None, reduction_override=None):
 		assert reduction_override in (None, 'none', 'mean', 'sum')
 		reduction = (reduction_override if reduction_override else self.reduction)
 
@@ -41,6 +52,5 @@ class SegmFocalLoss(nn.Module):
 			cls_score, label, weight,
 			alpha=self.alpha, gamma=self.gamma,
 			reduction=reduction, avg_factor=avg_factor,
-			**kwargs,
 		)
 		return loss_cls
