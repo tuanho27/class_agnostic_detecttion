@@ -202,6 +202,7 @@ class Distribution():
     assert (alpha >= 0).all()
     assert (scale >= 0).all()
     float_dtype = x.dtype
+    print("float_dtype", float_dtype, "alpha.dtype", alpha.dtype)
     assert alpha.dtype == float_dtype
     assert scale.dtype == float_dtype
 
