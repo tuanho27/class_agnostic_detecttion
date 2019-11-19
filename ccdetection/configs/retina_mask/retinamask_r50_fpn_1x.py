@@ -179,8 +179,8 @@ data = dict(
 		type=dataset_type,
 		ann_file=data_root + 'annotations/instances_val2017.json',
 		img_prefix=data_root + 'images/val2017/',
-		pipeline=test_pipeline),
-	,
+		pipeline=test_pipeline,
+	),
 )
 # optimizer
 optimizer = dict(type='SGD', lr=3e-2, momentum=0.9, weight_decay=1e-4)
