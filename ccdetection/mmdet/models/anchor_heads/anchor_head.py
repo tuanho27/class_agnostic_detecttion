@@ -153,6 +153,7 @@ class AnchorHead(nn.Module):
     def loss(self, cls_scores, bbox_preds, gt_bboxes, gt_labels, img_metas, cfg, gt_bboxes_ignore=None):
         featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
         assert len(featmap_sizes) == len(self.anchor_generators)
+        print("cls_scores", cls_scores[0].dtype, "bbox_preds", bbox_preds[0].dtype)
 
         device = cls_scores[0].device
 
@@ -220,6 +221,7 @@ class AnchorHead(nn.Module):
         """
         assert len(cls_scores) == len(bbox_preds)
         num_levels = len(cls_scores)
+        print("cls_scores", cls_scores[0].dtype, "bbox_preds", bbox_preds[0].dtype)
 
         device = cls_scores[0].device
         mlvl_anchors = [
@@ -230,16 +232,16 @@ class AnchorHead(nn.Module):
         ]
         result_list = []
         for img_id in range(len(img_metas)):
-            cls_score_list = [
-                cls_scores[i][img_id].detach() for i in range(num_levels)
-            ]
-            bbox_pred_list = [
-                bbox_preds[i][img_id].detach() for i in range(num_levels)
-            ]
+
+            cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
+            bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]
+
             img_shape = img_metas[img_id]['img_shape']
             scale_factor = img_metas[img_id]['scale_factor']
+
             proposals = self.get_bboxes_single(cls_score_list, bbox_pred_list, mlvl_anchors, img_shape, scale_factor, cfg, rescale)
             result_list.append(proposals)
+
         return result_list
 
     def get_bboxes_single(self, cls_score_list, bbox_pred_list, mlvl_anchors, img_shape, scale_factor, cfg, rescale=False):
