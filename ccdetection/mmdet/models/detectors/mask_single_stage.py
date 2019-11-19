@@ -108,6 +108,7 @@ class MaskSingleStateDetector(BaseDetector):
 
 		mask_targets = self.mask_head.get_target(sampling_results, gt_masks, self.train_cfg.rcnn)
 		pos_labels = torch.cat([res.pos_gt_labels for res in sampling_results])
+		import pdb; pdb.set_trace()
 		loss_mask = self.mask_head.loss(mask_pred, mask_targets, pos_labels)
 		losses.update(loss_mask)
 		return losses
