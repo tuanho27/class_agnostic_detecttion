@@ -20,7 +20,7 @@ elif '184' in gethostname():
 	fp16 = dict(loss_scale=512.)
 
 elif '185' in gethostname():
-	imgs_per_gpu = 16
+	imgs_per_gpu = 8
 	total_epochs = 12
 	load_from = None
 	pretrained = 'torchvision://resnet50'
