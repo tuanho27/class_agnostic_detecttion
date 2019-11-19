@@ -102,6 +102,7 @@ class AdaptiveRobustLoss_R(AdaptiveLossFunction):
         reduction = (reduction_override if reduction_override else self.reduction)
 
         x = torch.abs(pred - target)
+        print("x.dtype", x.dtype)
         loss = self.lossfun(x)
 
         loss_bbox = adapt_loss(loss, target, weight, reduction=reduction, avg_factor=avg_factor, **kwargs)
