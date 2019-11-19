@@ -5,8 +5,7 @@ import torch
 import torch.nn as nn
 from mmcv.cnn import normal_init
 
-from mmdet.core import (AnchorGenerator, anchor_target, delta2bbox, force_fp32,
-                        multi_apply, multiclass_nms)
+from mmdet.core import AnchorGenerator, anchor_target, delta2bbox, force_fp32, multi_apply, multiclass_nms
 from ..builder import build_loss
 from ..registry import HEADS
 
@@ -40,12 +39,9 @@ class AnchorHead(nn.Module):
                  anchor_base_sizes=None,
                  target_means=(.0, .0, .0, .0),
                  target_stds=(1.0, 1.0, 1.0, 1.0),
-                 loss_cls=dict(
-                     type='CrossEntropyLoss',
-                     use_sigmoid=True,
-                     loss_weight=1.0),
-                 loss_bbox=dict(
-                     type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)):
+                 loss_cls=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+                 loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)):
+
         super(AnchorHead, self).__init__()
         self.in_channels = in_channels
         self.num_classes = num_classes
