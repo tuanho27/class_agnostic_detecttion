@@ -112,9 +112,9 @@ class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
 		losses.update(loss_mask)
 		return losses
 
-    def simple_test(self, img, img_meta, proposals=None, rescale=False):
-        """Test without augmentation."""
-        assert self.with_bbox, "Bbox head must be implemented."
+	def simple_test(self, img, img_meta, proposals=None, rescale=False):
+		"""Test without augmentation."""
+		assert self.with_bbox, "Bbox head must be implemented."
 
 		# BBox
 		x = self.extract_feat(img)
@@ -127,11 +127,11 @@ class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
 		]
 
 		# Mask
-        if not self.with_mask:
-            return bbox_results
-        else:
-            segm_results = self.simple_test_mask(x, img_meta, det_bboxes, det_labels, rescale=rescale)
-            return bbox_results, segm_results
+		if not self.with_mask:
+			return bbox_results
+		else:
+			segm_results = self.simple_test_mask(x, img_meta, det_bboxes, det_labels, rescale=rescale)
+			return bbox_results, segm_results
 
 	def aug_test(self, imgs, img_metas, rescale=False):
 		raise NotImplementedError
