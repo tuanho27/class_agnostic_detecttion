@@ -75,8 +75,8 @@ model = dict(
 		anchor_strides=[8, 16, 32, 64, 128],
 		loss_cls=dict(type='FocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
 		# loss_cls=dict(type='AutoFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.5, loss_weight=1.0),
-		# loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0),
-		loss_bbox=dict(type='AdaptiveRobustLoss_R', num_dims=4, loss_weight=1.0),
+		loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0),
+		# loss_bbox=dict(type='AdaptiveRobustLoss_R', num_dims=4, loss_weight=1.0),
 	),
 	mask_roi_extractor=dict(
 		type='SingleRoIExtractor',
