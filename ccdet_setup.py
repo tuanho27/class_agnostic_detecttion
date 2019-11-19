@@ -19,13 +19,17 @@ def get_all_backup_paths(dir, level=3):
 	return list_files
 
 print('Create Symbolic Link for:')
-for lvl in [1,2,3,4,5,6]:
+for lvl in [3]:
 	ccfiles = get_all_backup_paths(dir='ccdetection', level=lvl)
 	root_dir = os.path.dirname(os.path.realpath(__file__))
 	
 	
 	for f in ccfiles:
 		if not '.py' in f: continue
+		if 'backup.py' in f:
+			print('Remove:',f)
+			os.remove(f)
+			
 		src_file = os.path.join(root_dir,f)
 		dst_file = src_file.replace('ccdetection','mmdetection')
 		dst_parent = os.path.dirname(dst_file)
@@ -40,5 +44,6 @@ for lvl in [1,2,3,4,5,6]:
 		if not linked:
 			print(f)
 		if not os.path.isdir(dst_file):
-			os.symlink(src_file, dst_file)
+			# os.symlink(src_file, dst_file)
+			os.system('cp {} {}'.format(src_file, dst_file))
 
