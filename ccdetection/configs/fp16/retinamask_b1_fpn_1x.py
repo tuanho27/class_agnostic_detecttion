@@ -14,29 +14,26 @@ data_root= './dataset-coco/'
 # model settings
 model = dict(
     type='RetinaMask',
-    pretrained=None,#'torchvision://resnet50',
-    # backbone=dict(
-    #     type='ResNet',
-    #     depth=50,
-    #     num_stages=4,
-    #     out_indices=(0, 1, 2, 3),
-    #     frozen_stages=1,
-    #     style='pytorch'),
+    pretrained=None,
     backbone=dict(
-        type='DENet',
-        model_name=model_name,  # Support V0,V2,V3,V4
-        fpn_feature=fpn_feature,
-        init_from_pretrain=False,
-        frozen_to_block_idx=-1,  # Not Include this block index
-        norm_eval=norm_eval,
-        max_channels=512,
-        norm_cfg=dict(type='BN', requires_grad=False) if norm_eval else dict(
-            type='SyncBN', requires_grad=True)
+        type='EfficientNet',
+
     ),
+    # backbone=dict(
+    #     type='DENet',
+    #     model_name=model_name,  # Support V0,V2,V3,V4
+    #     fpn_feature=fpn_feature,
+    #     init_from_pretrain=False,
+    #     frozen_to_block_idx=-1,  # Not Include this block index
+    #     norm_eval=norm_eval,
+    #     max_channels=512,
+    #     norm_cfg=dict(type='BN', requires_grad=False) if norm_eval else dict(
+    #         type='SyncBN', requires_grad=True)
+    # ),
 
     neck=dict(
         type='FPN',
-        in_channels=[256, 512, 1024, 2048],
+        in_channels=[24, 40, 112, 320],
         out_channels=256,
         start_level=1,
         add_extra_convs=True,

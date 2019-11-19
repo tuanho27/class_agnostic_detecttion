@@ -6,7 +6,6 @@ if debug:
     num_samples = 200
     workers_per_gpu = 1
 # fp16 settings
-fp16 = dict(loss_scale=512.)
 
 
 work_dir = 'work_dirs/retinamask_r50_fpn_1x'

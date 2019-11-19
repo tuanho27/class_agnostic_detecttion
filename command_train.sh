@@ -1,5 +1,6 @@
-# CONFIG_FILE="ccdetection/configs/mask_rcnn_b1_fpn_1x.py"
-CONFIG_FILE='ccdetection/configs/retina_mask/retinamask_r50_fpn_1x.py'
+# CONFIG_FILE="ccdetection/configs/retinamask_b1_fpn_1x.py"
+CONFIG_FILE=ccdetection/configs/fp16/retinamask_b1_fpn_1x.py
+# CONFIG_FILE='ccdetection/configs/retina_mask/retinamask_r50_fpn_1x.py'
 GPUS=2
 SEED=0
 
