@@ -1,10 +1,46 @@
-work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
-data_root= '/home/member/Workspace/dataset/coco/'
+from socket import gethostname
+
+# Server adaptation
+if 'X399' in gethostname():
+	imgs_per_gpu = 2
+	total_epochs = 12
+	load_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root = '/home/cybercore/Workspace/dataset/coco/'
+	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	fp16 = dict(loss_scale=512.)
+
+elif '184' in gethostname():
+	imgs_per_gpu = 16
+	total_epochs = 12
+	load_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/member/Workspace/dataset/coco/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	fp16 = dict(loss_scale=512.)
+
+elif '185' in gethostname():
+	imgs_per_gpu = 16
+	total_epochs = 12
+	load_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/member/Workspace/dataset/coco/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	fp16 = dict(loss_scale=512.)
+
+elif '186' in gethostname():
+	imgs_per_gpu = 16
+	total_epochs = 12
+	load_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/user/thuync/datasets/coco/'
+	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	fp16 = dict(loss_scale=512.)
+
 # model settings
-fp16 = dict(loss_scale=512.)
 model = dict(
 	type='RetinaMask',
-	pretrained='torchvision://resnet50',
+	pretrained=pretrained,
 	backbone=dict(
 		type='ResNet',
 		depth=50,
@@ -125,23 +161,27 @@ test_pipeline = [
 		])
 ]
 data = dict(
-	imgs_per_gpu=16,
-	workers_per_gpu=10,
+	imgs_per_gpu=imgs_per_gpu,
+	workers_per_gpu=8,
 	train=dict(
 		type=dataset_type,
 		ann_file=data_root + 'annotations/instances_train2017.json',
 		img_prefix=data_root + 'images/train2017/',
-		pipeline=train_pipeline),
+		pipeline=train_pipeline,
+	),
 	val=dict(
 		type=dataset_type,
 		ann_file=data_root + 'annotations/instances_val2017.json',
 		img_prefix=data_root + 'images/val2017/',
-		pipeline=test_pipeline),
+		pipeline=test_pipeline,
+	),
 	test=dict(
 		type=dataset_type,
 		ann_file=data_root + 'annotations/instances_val2017.json',
 		img_prefix=data_root + 'images/val2017/',
-		pipeline=test_pipeline))
+		pipeline=test_pipeline),
+	,
+)
 # optimizer
 optimizer = dict(type='SGD', lr=3e-2, momentum=0.9, weight_decay=1e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
@@ -161,9 +201,6 @@ log_config = dict(
 	])
 # yapf:enable
 # runtime settings
-total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-load_from = None
-resume_from = None
 workflow = [('train', 1)]
