@@ -17,8 +17,7 @@ def mask_focal_loss(pred, target, label, alpha=0.25, gamma=2.0, reduction='mean'
 	target = target.type_as(pred)
 	pt = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target)
 	focal_weight = (alpha * target + (1 - alpha) * (1 - target)) * pt.pow(gamma)
-	loss = focal_weight * F.binary_cross_entropy_with_logits(pred, target, reduction='none')
-	loss = weight_reduce_loss(loss, weight, reduction, avg_factor)
+	loss = focal_weight * F.binary_cross_entropy_with_logits(pred, target, reduction='mean')
 	return loss
 
 
