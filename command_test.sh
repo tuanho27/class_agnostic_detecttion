@@ -14,5 +14,3 @@ PYTHON=${PYTHON:-"python"}
 
 $PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
 	mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
-# $PYTHON mmdetection/tools/voc_eval.py ${RESULT_FILE} ${CONFIG_FILE} --iou-th=0.5 > $WRITE_TO
-# cat $WRITE_TO
