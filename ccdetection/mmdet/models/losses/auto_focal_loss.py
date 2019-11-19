@@ -49,8 +49,9 @@ class AutoFocalLoss(nn.Module):
 			cls_channels = pred.shape[1]
 			bin_target = _expand_binary_labels(target, cls_channels)
 			bin_target = bin_target.float()
+
 			p = pred.sigmoid()
-			p_score = bin_target*p
+			p_score = p * bin_target
 			p_sum = torch.sum(p_score,1)
 			n_non0 = torch.nonzero(p_sum).shape[0]
 
@@ -62,12 +63,14 @@ class AutoFocalLoss(nn.Module):
 			if self.p_avg ==1e-3:
 				self.p_avg = p_avg
 			else:
-				self.p_avg = 0.05*p_avg+0.95*self.p_avg
+				self.p_avg = 0.05*p_avg + 0.95*self.p_avg
+
 			self.gamma = -math.log(self.p_avg)
 
 			loss_cls = 2.0 * self.loss_weight * sigmoid_focal_loss(
-					pred, target, weight, gamma=self.gamma, alpha=self.alpha,
-					reduction=reduction, avg_factor=avg_factor)
+				pred, target, weight,
+				gamma=self.gamma, alpha=self.alpha,
+				reduction=reduction, avg_factor=avg_factor)
 		else:
 			raise NotImplementedError
 

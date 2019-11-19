@@ -13,6 +13,7 @@ from .auto_focal_loss import AutoFocalLoss, AutoFocalLoss_Regression
 from .adaptive_robust_loss import AdaptiveRobustLoss_C, AdaptiveRobustLoss_R
 from .focal_kl_loss import FocalKLLoss
 from .generalized_iou_loss import GeneralizedIOULoss
+from .segm_focal_loss import SegmFocalLoss
 
 
 __all__ = [
@@ -26,6 +27,6 @@ __all__ = [
     # Cybercore
     'AutoFocalLoss', 'AutoFocalLoss_Regression', 
     'AdaptiveRobustLoss_C', 'AdaptiveRobustLoss_R',
-    'FocalKLLoss',
+    'FocalKLLoss', 'SegmFocalLoss',
     'GeneralizedIOULoss',
 ]

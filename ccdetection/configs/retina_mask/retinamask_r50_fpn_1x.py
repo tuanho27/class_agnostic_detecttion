@@ -7,6 +7,48 @@ if debug:
     workers_per_gpu = 1
 # fp16 settings
 
+# Server adaptation
+if 'X399' in gethostname():
+	imgs_per_gpu = 2
+	total_epochs = 12
+	load_from = None
+	resume_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root = '/home/cybercore/Workspace/dataset/coco/'
+	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_newloss/'
+	fp16 = dict(loss_scale=512.)
+
+elif '184' in gethostname():
+	imgs_per_gpu = 16
+	total_epochs = 12
+	resume_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/member/Workspace/dataset/coco/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
+	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
+	fp16 = dict(loss_scale=512.)
+
+elif '185' in gethostname():
+	lr_start = 1e-2
+	lr_end = 1e-4
+	imgs_per_gpu = 16
+	total_epochs = 12
+	resume_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/member/Workspace/dataset/coco/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
+	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
+	fp16 = dict(loss_scale=512.)
+
+elif '186' in gethostname():
+	imgs_per_gpu = 16
+	total_epochs = 12
+	load_from = None
+	resume_from = None
+	pretrained = 'torchvision://resnet50'
+	data_root= '/home/user/thuync/datasets/coco/'
+	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
+	fp16 = dict(loss_scale=512.)
 
 work_dir = 'work_dirs/retinamask_r50_fpn_1x'
 data_root= './dataset-coco/'
@@ -57,7 +99,8 @@ model = dict(
 		in_channels=256,
 		conv_out_channels=256,
 		num_classes=81,
-		loss_mask=dict(type='CrossEntropyLoss', use_mask=True, loss_weight=1.0),
+		loss_mask=dict(type='SegmFocalLoss', use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=2.0),
+		# loss_mask=dict(type='CrossEntropyLoss', use_mask=True, loss_weight=1.0),
 	),
 )
 # training and testing settings
@@ -153,18 +196,18 @@ data = dict(
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
-optimizer = dict(type='SGD', lr=3e-2, momentum=0.9, weight_decay=1e-4)
+optimizer = dict(type='SGD', lr=lr_start, momentum=0.9, weight_decay=1e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
 	# policy='step', step=[8, 11],
-	policy='cosine', target_lr=3e-4, by_epoch=False,
+	policy='cosine', target_lr=lr_end, by_epoch=False,
 	warmup='linear', warmup_iters=500, warmup_ratio=1.0/3,
 )
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-	interval=50,
+	interval=20,
 	hooks=[
 		dict(type='TextLoggerHook'),
 		# dict(type='TensorboardLoggerHook')
