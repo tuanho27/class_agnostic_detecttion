@@ -19,7 +19,6 @@ def get_all_backup_paths(dir, level=3):
 	return list_files
 
 print('Create Symbolic Link for:')
-print(root_dir)
 for lvl in [1,2,3,4,5,6]:
 	ccfiles = get_all_backup_paths(dir='ccdetection', level=lvl)
 	root_dir = os.path.dirname(os.path.realpath(__file__))
