@@ -7,7 +7,7 @@ if 'X399' in gethostname():
 	load_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root = '/home/cybercore/Workspace/dataset/coco/'
-	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
 elif '184' in gethostname():
@@ -16,7 +16,7 @@ elif '184' in gethostname():
 	load_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
 elif '185' in gethostname():
@@ -25,7 +25,7 @@ elif '185' in gethostname():
 	load_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
 elif '186' in gethostname():
@@ -34,7 +34,7 @@ elif '186' in gethostname():
 	load_from = None
 	pretrained = 'torchvision://resnet50'
 	data_root= '/home/user/thuync/datasets/coco/'
-	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_fpn_1x/'
+	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
 # model settings
