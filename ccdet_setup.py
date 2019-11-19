@@ -18,22 +18,28 @@ def get_all_backup_paths(dir, level=3):
 			list_files += [d for d in glob.glob(filenames) if os.path.isfile(d)]
 	return list_files
 
-ccfiles = get_all_backup_paths(dir='ccdetection', level=3)
-
-root_dir = os.path.dirname(os.path.realpath(__file__))
-print(root_dir)
 print('Create Symbolic Link for:')
-for f in ccfiles:
-	print(f)
-	src_file = os.path.join(root_dir,f)
-	dst_file = src_file.replace('ccdetection','mmdetection')
-	dst_parent = os.path.dirname(dst_file)
-	os.makedirs(dst_parent,exist_ok=True)
+print(root_dir)
+for lvl in [1,2,3,4,5,6]:
+	ccfiles = get_all_backup_paths(dir='ccdetection', level=lvl)
+	root_dir = os.path.dirname(os.path.realpath(__file__))
+	
+	
+	for f in ccfiles:
+		if not '.py' in f: continue
+		src_file = os.path.join(root_dir,f)
+		dst_file = src_file.replace('ccdetection','mmdetection')
+		dst_parent = os.path.dirname(dst_file)
+		os.makedirs(dst_parent,exist_ok=True)
+		linked = False
+		if os.path.islink(dst_file):
+			os.unlink(dst_file)
+			linked = True
+		if os.path.exists(dst_file) and '.py' in dst_file:
+			os.rename(dst_file, dst_file.replace('.py','backup.py'))
 
-	if os.path.islink(dst_file):
-		os.unlink(dst_file)
-	if os.path.exists(dst_file) and '.py' in dst_file:
-		os.rename(dst_file, dst_file.replace('.py','backup.py'))
-	if not os.path.isdir(dst_file):
-		os.symlink(src_file, dst_file)
+		if not linked:
+			print(f)
+		if not os.path.isdir(dst_file):
+			os.symlink(src_file, dst_file)
 
