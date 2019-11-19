@@ -113,18 +113,13 @@ class MaskSingleStateDetector(BaseDetector, BBoxTestMixin, MaskTestMixin):
 		return losses
 
 	def simple_test(self, img, img_meta, proposals=None, rescale=False):
-		"""Test without augmentation."""
-		assert self.with_bbox, "Bbox head must be implemented."
-
 		# BBox
 		x = self.extract_feat(img)
 		outs = self.bbox_head(x)
 		bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
 		bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
-		bbox_results = [
-			bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
-			for det_bboxes, det_labels in bbox_list
-		]
+		det_bboxes, det_labels = tuple(zip(*bbox_list))
+		bbox_results = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
 
 		# Mask
 		if not self.with_mask:
