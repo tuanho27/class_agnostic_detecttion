@@ -1,42 +1,15 @@
-from socket import gethostname
+# debug
+debug=True
+num_samples = None
+workers_per_gpu = 2
+if debug:
+    num_samples = 200
+    workers_per_gpu = 1
+# fp16 settings
 
-# Server adaptation
-if 'X399' in gethostname():
-	imgs_per_gpu = 2
-	total_epochs = 12
-	load_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root = '/home/cybercore/Workspace/dataset/coco/'
-	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_fpn_1x/'
-	fp16 = dict(loss_scale=512.)
 
-elif '184' in gethostname():
-	imgs_per_gpu = 16
-	total_epochs = 12
-	load_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
-	fp16 = dict(loss_scale=512.)
-
-elif '185' in gethostname():
-	imgs_per_gpu = 16
-	total_epochs = 12
-	load_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_fpn_1x/'
-	fp16 = dict(loss_scale=512.)
-
-elif '186' in gethostname():
-	imgs_per_gpu = 16
-	total_epochs = 12
-	load_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/user/thuync/datasets/coco/'
-	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_fpn_1x/'
-	fp16 = dict(loss_scale=512.)
-
+work_dir = 'work_dirs/retinamask_r50_fpn_1x'
+data_root= './dataset-coco/'
 # model settings
 model = dict(
 	type='RetinaMask',
@@ -162,27 +135,23 @@ test_pipeline = [
 		])
 ]
 data = dict(
-	imgs_per_gpu=imgs_per_gpu,
-	workers_per_gpu=8,
-	train=dict(
-		type=dataset_type,
-		ann_file=data_root + 'annotations/instances_train2017.json',
-		img_prefix=data_root + 'images/train2017/',
-		pipeline=train_pipeline,
-	),
-	val=dict(
-		type=dataset_type,
-		ann_file=data_root + 'annotations/instances_val2017.json',
-		img_prefix=data_root + 'images/val2017/',
-		pipeline=test_pipeline,
-	),
-	test=dict(
-		type=dataset_type,
-		ann_file=data_root + 'annotations/instances_val2017.json',
-		img_prefix=data_root + 'images/val2017/',
-		pipeline=test_pipeline,
-	),
-)
+    imgs_per_gpu=2,
+    workers_per_gpu=workers_per_gpu,
+    train=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'images/train2017/',
+        pipeline=train_pipeline, num_samples=num_samples),
+    val=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'images/val2017/',
+        pipeline=test_pipeline, num_samples=num_samples),
+    test=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'images/val2017/',
+        pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
 optimizer = dict(type='SGD', lr=3e-2, momentum=0.9, weight_decay=1e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
