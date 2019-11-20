@@ -27,13 +27,9 @@ class EfficientNet(nn.Module):
         outs = self.forward(x)
         for i, _ in enumerate(outs): print(i, _.shape)
 
-        
-
-
     def init_weights(self, pretrained=None):
         pass
             
     def forward(self, x):
         outs =  self.eff_net(x)
-        # import ipdb; ipdb.set_trace()
         return [outs[i] for i in self.out_idx]

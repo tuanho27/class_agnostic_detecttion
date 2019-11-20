@@ -8,14 +8,16 @@ data_root= './dataset-coco/'
 
 
 # debug
-debug=True
+imgs_per_gpu=8
+debug=False
 num_samples = None
-workers_per_gpu = 2
-train_ann_file=data_root + 'annotations/instances_train2017.json'
-train_img__dir='images/train2017/'
+workers_per_gpu = 8
+train_ann_file=data_root + 'annotations/instances_val2017.json'
+train_img__dir='images/val2017/'
 if debug:
     num_samples = 200
     workers_per_gpu = 1
+    imgs_per_gpu=2
     train_ann_file = data_root + 'annotations/instances_val2017.json'
     train_img__dir='images/val2017/'
 
@@ -136,7 +138,7 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=2,
+    imgs_per_gpu=imgs_per_gpu,
     workers_per_gpu=workers_per_gpu,
     train=dict(
         type=dataset_type,
