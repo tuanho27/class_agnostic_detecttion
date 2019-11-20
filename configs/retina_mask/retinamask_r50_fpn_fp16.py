@@ -8,6 +8,14 @@ data_root= './dataset-coco/'
 
 
 # debug
+# learning policy
+lr_config = dict(
+    policy='step',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=1.0 / 3,
+    step=[8, 13])
+
 total_epochs = 100
 imgs_per_gpu=8
 debug=True
@@ -16,13 +24,22 @@ workers_per_gpu = 8
 train_ann_file=data_root + 'annotations/instances_val2017.json'
 train_img__dir='images/val2017/'
 log_interval=5
+checkpoint_config = dict(interval=1)
 if debug:
     log_interval=1
+    checkpoint_config = dict(interval=10)
     num_samples = 2
     workers_per_gpu = 1
     imgs_per_gpu=2
     train_ann_file = data_root + 'annotations/instances_val2017.json'
     train_img__dir='images/val2017/'
+    # learning policy
+    lr_config = dict(
+        policy='step',
+        warmup='linear',
+        warmup_iters=10,
+        warmup_ratio=1.0 / 3,
+        step=[40, 70])
 
 # model settings
 # import ipdb; ipdb.set_trace()
@@ -53,7 +70,7 @@ model = dict(
         feat_channels=256,
         octave_base_scale=4,
         scales_per_octave=3,
-        anchor_ratios=[0.5, 1.0, 2.0],
+        anchor_ratios=[0.5, 0.7, 1.0, 2.0],
         anchor_strides=[8, 16, 32, 64, 128],
         target_means=[.0, .0, .0, .0],
         target_stds=[1.0, 1.0, 1.0, 1.0],
@@ -125,7 +142,7 @@ train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
     dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
-    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='RandomFlip', flip_ratio=0.0),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
@@ -166,16 +183,9 @@ data = dict(
         pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-# optimizer = dict(type='Adam', lr=0.005)
+# optimizer = dict(type='Adam', lr=0.0005)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
-# learning policy
-lr_config = dict(
-    policy='step',
-    warmup='linear',
-    warmup_iters=500,
-    warmup_ratio=1.0 / 3,
-    step=[8, 11])
-checkpoint_config = dict(interval=1)
+
 # yapf:disable
 log_config = dict(
     interval=log_interval,
