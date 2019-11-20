@@ -110,35 +110,35 @@ class MaskSingleStateDetector(BaseDetector):
         if gt_bboxes_ignore is None:
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
         sampling_results = []
-        import ipdb; ipdb.set_trace()
-        for i in range(num_imgs):
-            assign_result = bbox_assigner.assign(proposal_list[i],
-                                                    gt_bboxes[i],
-                                                    gt_bboxes_ignore[i],
-                                                    gt_labels[i])
-            sampling_result = bbox_sampler.sample(
-                assign_result,
-                proposal_list[i],
-                gt_bboxes[i],
-                gt_labels[i],
-                feats=[lvl_feat[i][None] for lvl_feat in x])
-            sampling_results.append(sampling_result)
+        # import ipdb; ipdb.set_trace()
+        # for i in range(num_imgs):
+        #     assign_result = bbox_assigner.assign(proposal_list[i],
+        #                                             gt_bboxes[i],
+        #                                             gt_bboxes_ignore[i],
+        #                                             gt_labels[i])
+        #     sampling_result = bbox_sampler.sample(
+        #         assign_result,
+        #         proposal_list[i],
+        #         gt_bboxes[i],
+        #         gt_labels[i],
+        #         feats=[lvl_feat[i][None] for lvl_feat in x])
+        #     sampling_results.append(sampling_result)
 
-        # Mask head
-        pos_rois = bbox2roi(
-                    [res.pos_bboxes for res in sampling_results])
-        mask_feats = self.mask_roi_extractor(
-                    x[:self.mask_roi_extractor.num_inputs], pos_rois)
-        mask_pred = self.mask_head(mask_feats)
+        # # Mask head
+        # pos_rois = bbox2roi(
+        #             [res.pos_bboxes for res in sampling_results])
+        # mask_feats = self.mask_roi_extractor(
+        #             x[:self.mask_roi_extractor.num_inputs], pos_rois)
+        # mask_pred = self.mask_head(mask_feats)
 
-        mask_targets = self.mask_head.get_target(sampling_results,
-                                                gt_masks,
-                                                self.train_cfg.rcnn)
-        pos_labels = torch.cat(
-                [res.pos_gt_labels for res in sampling_results])
-        loss_mask = self.mask_head.loss(mask_pred, mask_targets,
-                                            pos_labels)
-        losses.update(loss_mask)
+        # mask_targets = self.mask_head.get_target(sampling_results,
+        #                                         gt_masks,
+        #                                         self.train_cfg.rcnn)
+        # pos_labels = torch.cat(
+        #         [res.pos_gt_labels for res in sampling_results])
+        # loss_mask = self.mask_head.loss(mask_pred, mask_targets,
+        #                                     pos_labels)
+        # losses.update(loss_mask)
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
