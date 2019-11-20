@@ -8,7 +8,7 @@ CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 RESULT_FILE="${WORK_DIR}/epoch_${th}.pkl"
 WRITE_TO="${WORK_DIR}/epoch_${th}.txt"
 
-GPUS=2
+GPUS=1
 CUDA_VISIBLE_DEVICES=0,1
 PYTHON=${PYTHON:-"python"}
 

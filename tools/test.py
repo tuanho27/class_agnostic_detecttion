@@ -27,7 +27,8 @@ def single_gpu_test(model, data_loader, show=False):
         results.append(result)
 
         if show:
-            model.module.show_result(data, result)
+            import ipdb; ipdb.set_trace()
+            model.module.show_result(data, result, show=False, out_file=f'cache/{i}.png')
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
