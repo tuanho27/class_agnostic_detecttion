@@ -114,8 +114,12 @@ class MaskTestMixin(object):
         else:
             # if det_bboxes is rescaled to the original image size, we need to
             # rescale it back to the testing scale to obtain RoIs.
-            _bboxes = (
-                det_bboxes[:, :4] * scale_factor if rescale else det_bboxes)
+            if rescale:
+                _bboxes = det_bboxes[:, :4] * scale_factor
+            else :
+                _bboxes = det_bboxes
+
+            # import ipdb; ipdb.set_trace()
             mask_rois = bbox2roi([_bboxes])
             mask_feats = self.mask_roi_extractor(
                 x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)

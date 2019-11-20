@@ -3,7 +3,7 @@
 fp16 = dict(loss_scale=512.)
 
 
-work_dir = 'work_dirs/retinamask_b1_fpn_1x'
+work_dir = 'work_dirs/retinamask_r50_fpn_fp16'
 data_root= './dataset-coco/'
 
 
@@ -85,7 +85,7 @@ model = dict(
         type='SingleRoIExtractor',
         roi_layer=dict(type='RoIAlign', out_size=14, sample_num=2),
         out_channels=256,
-        featmap_strides=[4, 8, 16, 32]),
+        featmap_strides=[8, 16, 32]),
     mask_head=dict(
         type='FCNMaskHead',
         num_convs=4,
@@ -127,13 +127,22 @@ train_cfg = dict(
             add_gt_as_proposals=True),
         mask_size=28,
         pos_weight=-1,
-        debug=False))
+        debug=False)
+        )
 test_cfg = dict(
     nms_pre=1000,
     min_bbox_size=0,
     score_thr=0.05,
     nms=dict(type='nms', iou_thr=0.5),
-    max_per_img=100)
+    max_per_img=100
+    ,
+        rcnn=dict(
+        score_thr=0.05,
+        nms=dict(type='nms', iou_thr=0.5),
+        max_per_img=100,
+        mask_thr_binary=0.5)
+    
+    )
 # dataset settings
 dataset_type = 'CocoDataset'
 img_norm_cfg = dict(

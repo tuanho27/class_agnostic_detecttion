@@ -9,7 +9,7 @@ from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 
 
 @DETECTORS.register_module
-class MaskSingleStateDetector(BaseDetector):
+class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
     """Base class for single-stage detectors.
 
     Single-stage detectors directly and densely predict bounding boxes on the
@@ -110,35 +110,36 @@ class MaskSingleStateDetector(BaseDetector):
         if gt_bboxes_ignore is None:
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
         sampling_results = []
+        for i in range(num_imgs):
+            assign_result = bbox_assigner.assign(proposal_list[i],
+                                                    gt_bboxes[i],
+                                                    gt_bboxes_ignore[i],
+                                                    gt_labels[i])
+            sampling_result = bbox_sampler.sample(
+                assign_result,
+                proposal_list[i],
+                gt_bboxes[i],
+                gt_labels[i],
+                feats=[lvl_feat[i][None] for lvl_feat in x])
+            sampling_results.append(sampling_result)
+
+        # Mask head
         # import ipdb; ipdb.set_trace()
-        # for i in range(num_imgs):
-        #     assign_result = bbox_assigner.assign(proposal_list[i],
-        #                                             gt_bboxes[i],
-        #                                             gt_bboxes_ignore[i],
-        #                                             gt_labels[i])
-        #     sampling_result = bbox_sampler.sample(
-        #         assign_result,
-        #         proposal_list[i],
-        #         gt_bboxes[i],
-        #         gt_labels[i],
-        #         feats=[lvl_feat[i][None] for lvl_feat in x])
-        #     sampling_results.append(sampling_result)
+        pos_rois = bbox2roi(
+                    [res.pos_bboxes for res in sampling_results])
+        mask_feats = self.mask_roi_extractor(
+                    x[:self.mask_roi_extractor.num_inputs], pos_rois)
+        mask_pred = self.mask_head(mask_feats)
 
-        # # Mask head
-        # pos_rois = bbox2roi(
-        #             [res.pos_bboxes for res in sampling_results])
-        # mask_feats = self.mask_roi_extractor(
-        #             x[:self.mask_roi_extractor.num_inputs], pos_rois)
-        # mask_pred = self.mask_head(mask_feats)
+        mask_targets = self.mask_head.get_target(sampling_results,
+                                                gt_masks,
+                                                self.train_cfg.rcnn)
+        pos_labels = torch.cat(
+                [res.pos_gt_labels for res in sampling_results])
 
-        # mask_targets = self.mask_head.get_target(sampling_results,
-        #                                         gt_masks,
-        #                                         self.train_cfg.rcnn)
-        # pos_labels = torch.cat(
-        #         [res.pos_gt_labels for res in sampling_results])
-        # loss_mask = self.mask_head.loss(mask_pred, mask_targets,
-        #                                     pos_labels)
-        # losses.update(loss_mask)
+        loss_mask = self.mask_head.loss(mask_pred, mask_targets,
+                                            pos_labels)
+        losses.update(loss_mask)
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
@@ -146,11 +147,53 @@ class MaskSingleStateDetector(BaseDetector):
         outs = self.bbox_head(x)
         bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
         bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
-        bbox_results = [
-            bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
-            for det_bboxes, det_labels in bbox_list
-        ]
-        return bbox_results[0]
+
+        bbox_results = []
+        # import ipdb; ipdb.set_trace()
+        for det_bboxes, det_labels in bbox_list:
+            bb_result = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
+            bbox_results.append(bb_result)
+
+        if not self.with_mask:
+            return bbox_results[0]
+        else:
+            # import ipdb; ipdb.set_trace()
+            segm_results = self.simple_test_mask(
+                x, img_meta, det_bboxes, det_labels, rescale=rescale)
+            # import ipdb; ipdb.set_trace()
+            return bbox_results[0], segm_results
+
+
+    def simple_test_mask(self,
+                         x,
+                         img_meta,
+                         det_bboxes,
+                         det_labels,
+                         rescale=False):
+        # image shape of the first image in the batch (only one)
+        # import ipdb; ipdb.set_trace()
+        ori_shape = img_meta[0]['ori_shape']
+        scale_factor = img_meta[0]['scale_factor']
+        if det_bboxes.shape[0] == 0:
+            segm_result = [[] for _ in range(self.mask_head.num_classes - 1)]
+        else:
+            if rescale:
+                _bboxes = det_bboxes[:, :4] * scale_factor
+            else :
+                _bboxes = det_bboxes
+
+            mask_rois = bbox2roi([_bboxes])
+            mask_feats = self.mask_roi_extractor(
+                x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
+            if self.with_shared_head:
+                mask_feats = self.shared_head(mask_feats)
+            mask_pred = self.mask_head(mask_feats)
+            segm_result = self.mask_head.get_seg_masks(mask_pred, _bboxes,
+                                                       det_labels,
+                                                       self.test_cfg.rcnn,
+                                                       ori_shape, scale_factor,
+                                                       rescale)
+        return segm_result
 
     def aug_test(self, imgs, img_metas, rescale=False):
         raise NotImplementedError
