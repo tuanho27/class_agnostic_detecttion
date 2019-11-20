@@ -15,8 +15,10 @@ num_samples = None
 workers_per_gpu = 8
 train_ann_file=data_root + 'annotations/instances_val2017.json'
 train_img__dir='images/val2017/'
+log_interval=5
 if debug:
-    num_samples = 200
+    log_interval=1
+    num_samples = 2
     workers_per_gpu = 1
     imgs_per_gpu=2
     train_ann_file = data_root + 'annotations/instances_val2017.json'
@@ -26,9 +28,11 @@ if debug:
 # import ipdb; ipdb.set_trace()
 model = dict(
     type='RetinaMask',
-    pretrained=f'{work_dir}/latest.pth',
+    # pretrained=f'{work_dir}/latest.pth',
+    pretrained=None,
     backbone=dict(
         type='EfficientNet',
+        model_name='b1',
     ),
     neck=dict(
         type='FPN',
@@ -170,7 +174,7 @@ lr_config = dict(
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=5,
+    interval=log_interval,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')

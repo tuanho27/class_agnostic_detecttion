@@ -3,7 +3,7 @@
 CONFIG_FILE="configs/fp16/retinamask_b1_fpn_1x.py"
 WORK_DIR="work_dirs/retinamask_b1_fpn_1x"
 
-th=11
+th=99
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 RESULT_FILE="${WORK_DIR}/epoch_${th}.pkl"
 WRITE_TO="${WORK_DIR}/epoch_${th}.txt"

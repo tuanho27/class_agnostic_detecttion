@@ -24,10 +24,9 @@ class EfficientNet(nn.Module):
         self.eff_net = _model_cls(pretrained=True)
 
         x = torch.randn(2,3,256,256)
-        outs = self.forward(x)
-        for i, _ in enumerate(outs): print(i, _.shape)
-
-
+        outs = self.eff_net(x)
+        for i, _ in enumerate(outs):
+            print('[EfficientNet]',i, _.shape)
 
     def init_weights(self, pretrained=None):
         pass

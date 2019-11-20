@@ -98,6 +98,7 @@ class MaskSingleStateDetector(BaseDetector):
         # Proposal bboxes by nms/get bbox with top predicted prob
         proposal_cfg = self.train_cfg.get('rpn_proposal',
                                               self.test_cfg)
+        # import ipdb; ipdb.set_trace()
         proposal_inputs = outs + (img_metas, proposal_cfg)
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
         proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
@@ -109,6 +110,7 @@ class MaskSingleStateDetector(BaseDetector):
         if gt_bboxes_ignore is None:
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
         sampling_results = []
+        import ipdb; ipdb.set_trace()
         for i in range(num_imgs):
             assign_result = bbox_assigner.assign(proposal_list[i],
                                                     gt_bboxes[i],
@@ -137,7 +139,6 @@ class MaskSingleStateDetector(BaseDetector):
         loss_mask = self.mask_head.loss(mask_pred, mask_targets,
                                             pos_labels)
         losses.update(loss_mask)
-        # import ipdb; ipdb.set_trace()
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
