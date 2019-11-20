@@ -7,6 +7,7 @@ from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 
+
 @DETECTORS.register_module
 class MaskSingleStateDetector(BaseDetector):
     """Base class for single-stage detectors.
@@ -86,7 +87,7 @@ class MaskSingleStateDetector(BaseDetector):
                       gt_bboxes_ignore=None,
                       gt_masks=None):
         x = self.extract_feat(img)
-
+        # import ipdb; ipdb.set_trace()
         # BBox head
         outs = self.bbox_head(x)
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
@@ -136,6 +137,7 @@ class MaskSingleStateDetector(BaseDetector):
         loss_mask = self.mask_head.loss(mask_pred, mask_targets,
                                             pos_labels)
         losses.update(loss_mask)
+        # import ipdb; ipdb.set_trace()
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):

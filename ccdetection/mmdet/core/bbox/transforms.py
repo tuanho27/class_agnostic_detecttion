@@ -51,6 +51,7 @@ def delta2bbox(rois,
     max_ratio = np.abs(np.log(wh_ratio_clip))
     dw = dw.clamp(min=-max_ratio, max=max_ratio)
     dh = dh.clamp(min=-max_ratio, max=max_ratio)
+<<<<<<< HEAD
     px = ((rois[:, 0] + rois[:, 2]) * 0.5).unsqueeze(1).expand_as(dx)
     py = ((rois[:, 1] + rois[:, 3]) * 0.5).unsqueeze(1).expand_as(dy)
     pw = (rois[:, 2] - rois[:, 0] + 1.0).unsqueeze(1).expand_as(dw)
@@ -59,6 +60,21 @@ def delta2bbox(rois,
     gh = ph * dh.exp()
     gx = torch.addcmul(px, 1, pw, dx)  # gx = px + pw * dx
     gy = torch.addcmul(py, 1, ph, dy)  # gy = py + ph * dy
+=======
+    # Compute center of each roi
+    px = ((rois[:, 0] + rois[:, 2]) * 0.5).unsqueeze(1).expand_as(dx)
+    py = ((rois[:, 1] + rois[:, 3]) * 0.5).unsqueeze(1).expand_as(dy)
+    # Compute width/height of each roi
+    pw = (rois[:, 2] - rois[:, 0] + 1.0).unsqueeze(1).expand_as(dw)
+    ph = (rois[:, 3] - rois[:, 1] + 1.0).unsqueeze(1).expand_as(dh)
+    # Use exp(network energy) to enlarge/shrink each roi
+    gw = pw * dw.exp()
+    gh = ph * dh.exp()
+    # Use network energy to shift the center of each roi
+    gx = torch.addcmul(px, 1, pw, dx)  # gx = px + pw * dx
+    gy = torch.addcmul(py, 1, ph, dy)  # gy = py + ph * dy
+    # Convert center-xy/width/height to top-left, bottom-right
+>>>>>>> 376993160f425357a9ff340a5dd835581ec62990
     x1 = gx - gw * 0.5 + 0.5
     y1 = gy - gh * 0.5 + 0.5
     x2 = gx + gw * 0.5 - 0.5
@@ -159,6 +175,7 @@ def bbox2result(bboxes, labels, num_classes):
         labels = labels.cpu().numpy()
         return [bboxes[labels == i, :] for i in range(num_classes - 1)]
 
+<<<<<<< HEAD
 '''bbox and mask 转成result mask要画图'''
 def bbox_mask2result(bboxes, masks, labels, num_classes, img_meta):
     """Convert detection results to a list of numpy arrays.
@@ -199,6 +216,8 @@ def bbox_mask2result(bboxes, masks, labels, num_classes, img_meta):
         labels = labels.cpu().numpy()
         bbox_results = [bboxes[labels == i, :] for i in range(num_classes - 1)]
         return bbox_results, mask_results
+=======
+>>>>>>> 376993160f425357a9ff340a5dd835581ec62990
 
 def distance2bbox(points, distance, max_shape=None):
     """Decode distance prediction to bounding box.
@@ -222,6 +241,7 @@ def distance2bbox(points, distance, max_shape=None):
         x2 = x2.clamp(min=0, max=max_shape[1] - 1)
         y2 = y2.clamp(min=0, max=max_shape[0] - 1)
     return torch.stack([x1, y1, x2, y2], -1)
+<<<<<<< HEAD
 
 # def distance2mask(points, distances, max_shape=None):
 #     '''Decode distance prediction to 36 mask points
@@ -259,3 +279,5 @@ def distance2bbox(points, distance, max_shape=None):
 
 
 
+=======
+>>>>>>> 376993160f425357a9ff340a5dd835581ec62990

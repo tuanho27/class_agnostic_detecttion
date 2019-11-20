@@ -1,5 +1,5 @@
-work_dir = '/home/chuong/Workspace/Experiments/mask_rcnn_r50_fpn_1x'
-data_root= '/home/chuong/Workspace/dataset/coco/'
+work_dir = 'work_dirs/mask_rcnn_r50_fpn_1x'
+data_root= './dataset-coco/'
 # model settings
 model = dict(
     type='MaskRCNN',

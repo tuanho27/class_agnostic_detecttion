@@ -197,8 +197,8 @@ class Distribution():
     """
     # `scale` and `alpha` must have the same type as `x`.
     x = torch.as_tensor(x)
-    alpha = torch.as_tensor(alpha)
-    scale = torch.as_tensor(scale)
+    alpha = x.new_tensor(alpha)
+    scale = x.new_tensor(scale)
     assert (alpha >= 0).all()
     assert (scale >= 0).all()
     float_dtype = x.dtype

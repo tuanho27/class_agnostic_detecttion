@@ -27,7 +27,7 @@ __all__ = [
     # Cybercore
     'AutoFocalLoss', 'AutoFocalLoss_Regression', 
     'AdaptiveRobustLoss_C', 'AdaptiveRobustLoss_R',
-    'FocalKLLoss',
+    'FocalKLLoss', 'SegmFocalLoss',
     'GeneralizedIOULoss',
     'MaskIOULoss', 'MaskIOULoss_v2', 'MaskIOULoss_v3',
 ]

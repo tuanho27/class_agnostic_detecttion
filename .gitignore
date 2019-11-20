@@ -12,6 +12,7 @@ __pycache__/
 
 # C extensions
 *.so
+dataset-coco
 
 # Distribution / packaging
 .Python
@@ -125,3 +126,5 @@ work_dirs/
 
 # Pytorch
 *.pth
+.gitmessage.txt
+.mycommitmsg.txt
