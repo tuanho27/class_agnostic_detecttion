@@ -15,5 +15,14 @@ class RetinaMask(MaskSingleStateDetector):
                  pretrained=None):
         super(RetinaMask, self).__init__(backbone, neck, bbox_head,mask_roi_extractor,mask_head,train_cfg,
                                         test_cfg, pretrained)
-        # print('Finish init model')
-        # import ipdb; ipdb.set_trace()
+        self.custom_frozen()
+
+    def custom_frozen(self):
+        self.eval()
+        for param in self.parameters():
+            param.requires_grad=False
+
+        self.mask_head.train()
+        for param in self.mask_head.parameters():
+            param.requires_grad=True
+        

@@ -1,6 +1,6 @@
 
 # fp16 settings
-fp16 = dict(loss_scale=512.)
+# fp16 = dict(loss_scale=512.)
 
 
 work_dir = 'work_dirs/retinamask_r50_fpn_fp16'
@@ -16,7 +16,7 @@ lr_config = dict(
     warmup_ratio=1.0 / 3,
     step=[8, 13])
 
-total_epochs = 100
+total_epochs = 12
 imgs_per_gpu=8
 debug=True
 num_samples = None
@@ -26,32 +26,33 @@ train_img__dir='images/val2017/'
 log_interval=5
 checkpoint_config = dict(interval=1)
 if debug:
+    total_epochs = 1
     log_interval=1
-    checkpoint_config = dict(interval=10)
-    num_samples = 2
+    checkpoint_config = dict(interval=1)
+    num_samples = 1
     workers_per_gpu = 1
-    imgs_per_gpu=2
+    imgs_per_gpu=1
     train_ann_file = data_root + 'annotations/instances_val2017.json'
     train_img__dir='images/val2017/'
     # learning policy
     lr_config = dict(
         policy='step',
         warmup='linear',
-        warmup_iters=10,
+        warmup_iters=5,
         warmup_ratio=1.0 / 3,
-        step=[40, 70])
+        step=[30,40])
 
 # model settings
-# import ipdb; ipdb.set_trace()
 model = dict(
     type='RetinaMask',
-    pretrained='torchvision://resnet50',
-	backbone=dict(
+    # pretrained='torchvision://resnet50',
+    pretrained='retinanet_r50_fpn_1x_20181125-7b0c2548.pth',
+    backbone=dict(
 		type='ResNet',
 		depth=50,
 		num_stages=4,
 		out_indices=(0, 1, 2, 3),
-		frozen_stages=2,
+		frozen_stages=4,
 		style='pytorch',
 	),
 	neck=dict(
@@ -70,7 +71,7 @@ model = dict(
         feat_channels=256,
         octave_base_scale=4,
         scales_per_octave=3,
-        anchor_ratios=[0.5, 0.7, 1.0, 2.0],
+        anchor_ratios=[0.5, 1.0, 2.0],
         anchor_strides=[8, 16, 32, 64, 128],
         target_means=[.0, .0, .0, .0],
         target_stds=[1.0, 1.0, 1.0, 1.0],
@@ -95,6 +96,7 @@ model = dict(
         loss_mask=dict(
             type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))
     )
+    
 # training and testing settings
 train_cfg = dict(
     assigner=dict(
@@ -129,6 +131,7 @@ train_cfg = dict(
         pos_weight=-1,
         debug=False)
         )
+
 test_cfg = dict(
     nms_pre=1000,
     min_bbox_size=0,
@@ -191,8 +194,8 @@ data = dict(
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
-optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-# optimizer = dict(type='Adam', lr=0.0005)
+# optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='Adam', lr=0.02)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 
 # yapf:disable
