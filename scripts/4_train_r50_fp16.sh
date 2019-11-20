@@ -9,3 +9,5 @@ export CUDA_VISIBLE_DEVICES=0
 
 # export CUDA_VISIBLE_DEVICES=0
 python  ./tools/train.py $CONFIG_FILE
+
+sh scripts/4.1_test.sh

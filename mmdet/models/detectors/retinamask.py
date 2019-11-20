@@ -1,3 +1,4 @@
+import torch
 from ..registry import DETECTORS
 from .mask_single_stage import MaskSingleStateDetector
 
@@ -15,7 +16,11 @@ class RetinaMask(MaskSingleStateDetector):
                  pretrained=None):
         super(RetinaMask, self).__init__(backbone, neck, bbox_head,mask_roi_extractor,mask_head,train_cfg,
                                         test_cfg, pretrained)
-        self.custom_frozen()
+        # self.custom_frozen()
+        if pretrained is not None:
+            ckpt = torch.load(pretrained)
+            # import ipdb; ipdb.set_trace()
+            self.load_state_dict(ckpt['state_dict'], False)
 
     def custom_frozen(self):
         self.eval()

@@ -41,7 +41,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
     def init_weights(self, pretrained=None):
         super(MaskSingleStateDetector, self).init_weights(pretrained)
-        self.backbone.init_weights(pretrained=pretrained)
+        # self.backbone.init_weights(pretrained=pretrained)
         if self.with_neck:
             if isinstance(self.neck, nn.Sequential):
                 for m in self.neck:
@@ -111,7 +111,8 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
         sampling_results = []
         for i in range(num_imgs):
-            assign_result = bbox_assigner.assign(proposal_list[i],
+            # import ipdb; ipdb.set_trace()
+            assign_result = bbox_assigner.assign(torch.cat([proposal_list[i], gt_bboxes[i]], 0),
                                                     gt_bboxes[i],
                                                     gt_bboxes_ignore[i],
                                                     gt_labels[i])
@@ -125,15 +126,24 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         # Mask head
         # import ipdb; ipdb.set_trace()
-        pos_rois = bbox2roi(
+
+
+        rois = bbox2roi(
                     [res.pos_bboxes for res in sampling_results])
+    
+        gt_rois = bbox2roi(gt_bboxes)
+
+        # import ipdb; ipdb.set_trace()
+
         mask_feats = self.mask_roi_extractor(
-                    x[:self.mask_roi_extractor.num_inputs], pos_rois)
+                    x[:self.mask_roi_extractor.num_inputs], rois)
+
         mask_pred = self.mask_head(mask_feats)
 
         mask_targets = self.mask_head.get_target(sampling_results,
                                                 gt_masks,
                                                 self.train_cfg.rcnn)
+
         pos_labels = torch.cat(
                 [res.pos_gt_labels for res in sampling_results])
 

@@ -1,6 +1,6 @@
 
 # fp16 settings
-# fp16 = dict(loss_scale=512.)
+fp16 = dict(loss_scale=512.)
 
 
 work_dir = 'work_dirs/retinamask_r50_fpn_fp16'
@@ -26,9 +26,9 @@ train_img__dir='images/val2017/'
 log_interval=5
 checkpoint_config = dict(interval=1)
 if debug:
-    total_epochs = 1
+    total_epochs = 201
     log_interval=1
-    checkpoint_config = dict(interval=1)
+    checkpoint_config = dict(interval=10)
     num_samples = 1
     workers_per_gpu = 1
     imgs_per_gpu=1
@@ -38,9 +38,10 @@ if debug:
     lr_config = dict(
         policy='step',
         warmup='linear',
-        warmup_iters=5,
+        warmup_iters=30,
         warmup_ratio=1.0 / 3,
-        step=[30,40])
+        step=[100,150
+        ])
 
 # model settings
 model = dict(
@@ -86,7 +87,8 @@ model = dict(
         type='SingleRoIExtractor',
         roi_layer=dict(type='RoIAlign', out_size=14, sample_num=2),
         out_channels=256,
-        featmap_strides=[8, 16, 32]),
+        featmap_strides=[8, 16, 32],
+        finest_scale=112),
     mask_head=dict(
         type='FCNMaskHead',
         num_convs=4,
@@ -112,7 +114,7 @@ train_cfg = dict(
         min_bbox_size=0,
         score_thr=0.0,
         nms=dict(type='nms', iou_thr=0.7),
-        max_per_img=1000   
+        max_per_img=100   
     ),
     rcnn=dict(
         assigner=dict(
@@ -137,9 +139,8 @@ test_cfg = dict(
     min_bbox_size=0,
     score_thr=0.05,
     nms=dict(type='nms', iou_thr=0.5),
-    max_per_img=100
-    ,
-        rcnn=dict(
+    max_per_img=100,
+    rcnn=dict(
         score_thr=0.05,
         nms=dict(type='nms', iou_thr=0.5),
         max_per_img=100,
@@ -194,8 +195,8 @@ data = dict(
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
-# optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-optimizer = dict(type='Adam', lr=0.02)
+optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
+# optimizer = dict(type='Adam', lr=0.02)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 
 # yapf:disable
