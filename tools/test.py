@@ -27,7 +27,7 @@ def single_gpu_test(model, data_loader, show=False):
         results.append(result)
 
         if show:
-            model.module.show_result(data, result)
+            model.module.show_result(data, result, show=False, out_file=f'cache/{i}.png')
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
@@ -178,7 +178,7 @@ def main():
         model.CLASSES = checkpoint['meta']['CLASSES']
     else:
         model.CLASSES = dataset.CLASSES
-
+    # import ipdb; ipdb.set_trace()
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         outputs = single_gpu_test(model, data_loader, args.show)
