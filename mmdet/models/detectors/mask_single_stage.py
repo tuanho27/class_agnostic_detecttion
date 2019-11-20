@@ -141,15 +141,21 @@ class MaskSingleStateDetector(BaseDetector):
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
+        """Batchsize must be 1!
+        """
+        # BBox
         x = self.extract_feat(img)
         outs = self.bbox_head(x)
         bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
-        bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
-        bbox_results = [
-            bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
-            for det_bboxes, det_labels in bbox_list
-        ]
-        return bbox_results[0]
+        det_bboxes, det_labels = self.bbox_head.get_bboxes(*bbox_inputs)[0]
+        bbox_results = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
+
+        # Mask
+        if not self.with_mask:
+            return bbox_results
+        else:
+            segm_results = self.simple_test_mask(x, img_meta, det_bboxes, det_labels, rescale=rescale)
+            return bbox_results, segm_results
 
     def aug_test(self, imgs, img_metas, rescale=False):
         raise NotImplementedError
