@@ -21,11 +21,13 @@ class EfficientNet(nn.Module):
 
         super(EfficientNet, self).__init__()
         _model_cls = eval(f'efficientnet_{model_name}')
-        self.eff_net = _model_cls()
+        self.eff_net = _model_cls(pretrained=True)
 
         x = torch.randn(2,3,256,256)
         outs = self.forward(x)
         for i, _ in enumerate(outs): print(i, _.shape)
+
+
 
     def init_weights(self, pretrained=None):
         pass

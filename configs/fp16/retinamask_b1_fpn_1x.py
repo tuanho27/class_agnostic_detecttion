@@ -3,13 +3,14 @@
 fp16 = dict(loss_scale=512.)
 
 
-work_dir = 'work_dirs/retinamask_b1_fpn_1x.py'
+work_dir = 'work_dirs/retinamask_b1_fpn_1x'
 data_root= './dataset-coco/'
 
 
 # debug
+total_epochs = 100
 imgs_per_gpu=8
-debug=False
+debug=True
 num_samples = None
 workers_per_gpu = 8
 train_ann_file=data_root + 'annotations/instances_val2017.json'
@@ -25,7 +26,7 @@ if debug:
 # import ipdb; ipdb.set_trace()
 model = dict(
     type='RetinaMask',
-    pretrained=None,
+    pretrained=f'{work_dir}/latest.pth',
     backbone=dict(
         type='EfficientNet',
     ),
@@ -175,7 +176,6 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
