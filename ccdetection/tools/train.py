@@ -64,6 +64,10 @@ def main():
         cfg.data.test.img_prefix = cfg.data.test.img_prefix.replace(cfg.data_root,args.data_root)
         cfg.data_root = args.data_root
 
+    # Copy config file to work_dir
+    os.makedirs(cfg.work_dir, exist_ok=True)
+    os.system("cp %s %s" % (args.config, cfg.work_dir))
+
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
