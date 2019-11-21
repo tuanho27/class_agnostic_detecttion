@@ -157,6 +157,9 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
+        """Batchsize must be 1!
+        """
+        # BBox
         x = self.extract_feat(img)
         outs = self.bbox_head(x)
         bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
