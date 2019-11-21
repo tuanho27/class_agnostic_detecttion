@@ -17,10 +17,10 @@ lr_config = dict(
     step=[8, 13])
 
 total_epochs = 12
-imgs_per_gpu = 32
+imgs_per_gpu = 16
 debug = False
 num_samples = None
-workers_per_gpu = 8
+workers_per_gpu = 2
 train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = 'images/train2017/'
 log_interval = 10
@@ -52,7 +52,7 @@ model = dict(
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        frozen_stages=4,
+        frozen_stages=1,
         style='pytorch',
     ),
     neck=dict(

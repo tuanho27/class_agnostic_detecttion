@@ -111,7 +111,6 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         proposal_inputs = outs + (img_metas, proposal_cfg)
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
-        # import ipdb; ipdb.set_trace()
         self.time_records['proposal'].append(self.timer.since_last_check())
         # collect
         bbox_targets = [(bb, lbl) for bb, lbl in zip(gt_bboxes, gt_labels)]
