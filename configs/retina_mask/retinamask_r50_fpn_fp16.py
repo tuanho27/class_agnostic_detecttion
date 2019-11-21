@@ -14,11 +14,11 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[8, 13])
+    step=[7, 10])
 
 total_epochs = 12
 imgs_per_gpu = 16
-debug = False
+debug = True
 num_samples = None
 workers_per_gpu = 2
 train_ann_file = data_root + 'annotations/instances_train2017.json'

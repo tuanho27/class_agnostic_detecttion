@@ -127,10 +127,14 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         sampling_results = []
         for i in range(num_imgs):
             ith_proposal = proposal_list[i]
-            num_gt_bboxes = len(gt_bboxes[i])
+            # num_gt_bboxes = len(gt_bboxes[i])
 
-            ith_proposal = torch.cat([ith_proposal, ith_proposal[:num_gt_bboxes]])
-            ith_proposal[-num_gt_bboxes:, :4] = gt_bboxes[i]
+            # dummy_gt = torch.stack([ith_proposal[0]]*num_gt_bboxes)
+            # dummy_gt[:,:4] = gt_bboxes[i]
+            # ith_proposal = torch.cat([ith_proposal, dummy_gt])
+
+            # ith_proposal[-num_gt_bboxes:, :4] = gt_bboxes[i]
+
             assign_result = bbox_assigner.assign(ith_proposal,
                                                     gt_bboxes[i],
                                                     gt_bboxes_ignore[i],
