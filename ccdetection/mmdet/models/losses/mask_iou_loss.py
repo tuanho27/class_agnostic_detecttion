@@ -29,8 +29,6 @@ class MaskIOULoss(nn.Module):
         return loss
 
 
-
-
 @LOSSES.register_module
 class MaskIOULoss_v2(nn.Module):
     def __init__(self):
