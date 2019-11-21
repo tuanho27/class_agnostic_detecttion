@@ -8,8 +8,6 @@ import sys
 from os.path import join, dirname
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = torch.device('cpu')
-# device = 'cpu'
 
 class StyleAugmentor(nn.Module):
     def __init__(self):
@@ -25,7 +23,7 @@ class StyleAugmentor(nn.Module):
         checkpoint_ghiasi = torch.load(join(dirname(__file__),'checkpoints/checkpoint_transformer.pth'))
         checkpoint_stylepredictor = torch.load(join(dirname(__file__),'checkpoints/checkpoint_stylepredictor.pth'))
         checkpoint_embeddings = torch.load(join(dirname(__file__),'checkpoints/checkpoint_embeddings.pth'))
-        
+
         # load weights for ghiasi and stylePredictor, and mean / covariance for the embedding distribution:
         self.ghiasi.load_state_dict(checkpoint_ghiasi['state_dict_ghiasi'],strict=False)
         self.stylePredictor.load_state_dict(checkpoint_stylepredictor['state_dict_stylepredictor'],strict=False)
@@ -38,14 +36,14 @@ class StyleAugmentor(nn.Module):
         self.mean = checkpoint_embeddings['pbn_embedding_mean']
         self.mean = self.mean.to(device) # 1 x 100
         self.cov = checkpoint_embeddings['pbn_embedding_covariance']
-        
+
         # compute SVD of covariance matrix:
         u, s, vh = np.linalg.svd(self.cov.numpy())
-        
+
         self.A = np.matmul(u,np.diag(s**0.5))
         self.A = torch.tensor(self.A).float().to(device) # 100 x 100
         # self.cov = cov(Ax), x ~ N(0,1)
-    
+
     def sample_embedding(self,n):
         # n: number of embeddings to sample
         # returns n x 100 embedding tensor
@@ -76,12 +74,12 @@ class StyleAugmentor(nn.Module):
             embedding = self.sample_embedding(x.size(0))
         # interpolate style embeddings:
         embedding = alpha*embedding + (1-alpha)*base
-        
+
         restyled = self.ghiasi(x,embedding)
 
         if downsamples:
             restyled = nn.functional.upsample(restyled,scale_factor=2**downsamples,mode='bilinear')
-        
+
         if detach:
             return restyled.detach()
         else:

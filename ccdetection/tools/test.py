@@ -146,18 +146,17 @@ def main():
 
     cfg = mmcv.Config.fromfile(args.config)
 
-    # update workdir and dataroot:
-    import pdb; pdb.set_trace()
+    # update workdir and data_root:
     if args.work_dir:
         cfg.work_dir  = args.work_dir
     if args.data_root:
-        cfg.data.train.ann_file.replace(cfg.data_root,args.dataroot)
-        cfg.data.train.img_prefix.replace(cfg.data_root,args.dataroot)
-        cfg.data.val.ann_file.replace(cfg.data_root,args.dataroot)
-        cfg.data.val.img_prefix.replace(cfg.data_root,args.dataroot)
-        cfg.data.test.ann_file.replace(cfg.data_root,args.dataroot)
-        cfg.data.test.img_prefix.replace(cfg.data_root,args.dataroot)
-        cfg.data_root = args.dataroot
+        cfg.data.train.ann_file  = cfg.data.train.ann_file.replace(cfg.data_root,args.data_root)
+        cfg.data.train.img_prefix= cfg.data.train.img_prefix.replace(cfg.data_root,args.data_root)
+        cfg.data.val.ann_file    = cfg.data.val.ann_file.replace(cfg.data_root,args.data_root)
+        cfg.data.val.img_prefix  = cfg.data.val.img_prefix.replace(cfg.data_root,args.data_root)
+        cfg.data.test.ann_file   = cfg.data.test.ann_file.replace(cfg.data_root,args.data_root)
+        cfg.data.test.img_prefix = cfg.data.test.img_prefix.replace(cfg.data_root,args.data_root)
+        cfg.data_root = args.data_root
 
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
