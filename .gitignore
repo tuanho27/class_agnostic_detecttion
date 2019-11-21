@@ -127,4 +127,4 @@ work_dirs/
 # Pytorch
 *.pth
 .gitmessage.txt
-.mycommitmsg.txt
+.mycommitmsg.txtmodel_zoo
