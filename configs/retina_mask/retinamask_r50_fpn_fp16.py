@@ -18,7 +18,7 @@ lr_config = dict(
 
 total_epochs = 12
 imgs_per_gpu = 16
-debug = True
+debug = False
 num_samples = None
 workers_per_gpu = 2
 train_ann_file = data_root + 'annotations/instances_train2017.json'
