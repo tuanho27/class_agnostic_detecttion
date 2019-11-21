@@ -4,7 +4,7 @@ fp16 = dict(loss_scale=512.)
 
 
 work_dir = 'work_dirs/retinamask_r50_fpn_fp16'
-data_root= './dataset-coco/'
+data_root = './dataset-coco/'
 
 
 # debug
@@ -17,30 +17,30 @@ lr_config = dict(
     step=[8, 13])
 
 total_epochs = 12
-imgs_per_gpu=8
-debug=True
+imgs_per_gpu = 32
+debug = True
 num_samples = None
 workers_per_gpu = 8
-train_ann_file=data_root + 'annotations/instances_val2017.json'
-train_img__dir='images/val2017/'
-log_interval=5
+train_ann_file = data_root + 'annotations/instances_train2017.json'
+train_img_dir = 'images/train2017/'
+log_interval = 10
 checkpoint_config = dict(interval=1)
 if debug:
     total_epochs = 201
-    log_interval=1
+    log_interval = 1
     checkpoint_config = dict(interval=10)
     num_samples = 1
     workers_per_gpu = 1
-    imgs_per_gpu=1
+    imgs_per_gpu = 1
     train_ann_file = data_root + 'annotations/instances_val2017.json'
-    train_img__dir='images/val2017/'
+    train_img_dir = 'images/val2017/'
     # learning policy
     lr_config = dict(
         policy='step',
         warmup='linear',
         warmup_iters=30,
         warmup_ratio=1.0 / 3,
-        step=[100,150])
+        step=[100, 150])
 
 # model settings
 model = dict(
@@ -48,21 +48,21 @@ model = dict(
     # pretrained='torchvision://resnet50',
     pretrained='retinanet_r50_fpn_1x_20181125-7b0c2548.pth',
     backbone=dict(
-		type='ResNet',
-		depth=50,
-		num_stages=4,
-		out_indices=(0, 1, 2, 3),
-		frozen_stages=4,
-		style='pytorch',
-	),
-	neck=dict(
-		type='FPN',
-		in_channels=[256, 512, 1024, 2048],
-		out_channels=256,
-		start_level=1,
-		add_extra_convs=True,
-		num_outs=5,
-	),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=4,
+        style='pytorch',
+    ),
+    neck=dict(
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        start_level=1,
+        add_extra_convs=True,
+        num_outs=5,
+    ),
     bbox_head=dict(
         type='RetinaHead',
         num_classes=81,
@@ -96,8 +96,8 @@ model = dict(
         num_classes=81,
         loss_mask=dict(
             type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))
-    )
-    
+)
+
 # training and testing settings
 train_cfg = dict(
     assigner=dict(
@@ -110,10 +110,10 @@ train_cfg = dict(
     pos_weight=-1,
     rpn_proposal=dict(
         nms_pre=1000,
-        min_bbox_size=0,
-        score_thr=0.0,
+        min_bbox_size=10,
+        score_thr=0.05,
         nms=dict(type='nms', iou_thr=0.7),
-        max_per_img=100   
+        max_per_img=100
     ),
     rcnn=dict(
         assigner=dict(
@@ -131,7 +131,7 @@ train_cfg = dict(
         mask_size=28,
         pos_weight=-1,
         debug=False)
-        )
+)
 
 test_cfg = dict(
     nms_pre=1000,
@@ -144,8 +144,8 @@ test_cfg = dict(
         nms=dict(type='nms', iou_thr=0.5),
         max_per_img=100,
         mask_thr_binary=0.5)
-    
-    )
+
+)
 # dataset settings
 dataset_type = 'CocoDataset'
 img_norm_cfg = dict(
@@ -181,7 +181,7 @@ data = dict(
     train=dict(
         type=dataset_type,
         ann_file=train_ann_file,
-        img_prefix=data_root + train_img__dir,
+        img_prefix=data_root + train_img_dir,
         pipeline=train_pipeline, num_samples=num_samples),
     val=dict(
         type=dataset_type,
@@ -212,5 +212,3 @@ log_level = 'INFO'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
-
-

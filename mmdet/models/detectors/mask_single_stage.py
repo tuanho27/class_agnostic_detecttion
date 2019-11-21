@@ -1,6 +1,7 @@
+import numpy as np
 import torch
 import torch.nn as nn
-
+import mmcv
 from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
 from .. import builder
 from ..registry import DETECTORS
@@ -25,6 +26,9 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
+        self.timer = mmcv.Timer()
+        self.time_records = {x:[] for x in ['proposal', 'box', 'mask', 'assign']}
+
         super(MaskSingleStateDetector, self).__init__()
         self.backbone = builder.build_backbone(backbone)
         if neck is not None:
@@ -53,6 +57,13 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         self.mask_roi_extractor.init_weights()
         self.mask_head.init_weights()
 
+    def _print_running_time(self):
+        # box_time = np.mean(self.box_time)
+        # mask_time = np.mean(self.mask_time)
+        s = ''
+        for k, v in self.time_records.items():
+            s+=('{}: {:.4f}\t'.format(k,np.mean(v)))
+        print(s)
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck
         """
@@ -86,21 +97,23 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                       gt_labels,
                       gt_bboxes_ignore=None,
                       gt_masks=None):
+        self.timer.since_last_check()
         x = self.extract_feat(img)
-        # import ipdb; ipdb.set_trace()
-        # BBox head
         outs = self.bbox_head(x)
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-
+        self.time_records['box'].append(self.timer.since_last_check())
         # The below code is adopted from two_stage.py
         # Proposal bboxes by nms/get bbox with top predicted prob
         proposal_cfg = self.train_cfg.get('rpn_proposal',
                                               self.test_cfg)
-        # import ipdb; ipdb.set_trace()
+
         proposal_inputs = outs + (img_metas, proposal_cfg)
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
+        # import ipdb; ipdb.set_trace()
+        self.time_records['proposal'].append(self.timer.since_last_check())
+        # collect
         bbox_targets = [(bb, lbl) for bb, lbl in zip(gt_bboxes, gt_labels)]
         proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
 
@@ -111,6 +124,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         num_imgs = img.size(0)
         if gt_bboxes_ignore is None:
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
+
         sampling_results = []
         for i in range(num_imgs):
             ith_proposal = proposal_list[i]
@@ -132,6 +146,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         # Mask head
         # import ipdb; ipdb.set_trace()
+        self.time_records['assign'].append(self.timer.since_last_check())
 
 
         rois = bbox2roi(
@@ -154,6 +169,9 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         loss_mask = self.mask_head.loss(mask_pred, mask_targets,
                                             pos_labels)
         losses.update(loss_mask)
+        # self.mask_time.append(self.timer.since_last_check())
+        self.time_records['mask'].append(self.timer.since_last_check())
+
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
@@ -174,12 +192,9 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         if not self.with_mask:
             return bbox_results[0]
         else:
-            # import ipdb; ipdb.set_trace()
             segm_results = self.simple_test_mask(
                 x, img_meta, det_bboxes, det_labels, rescale=rescale)
-            # import ipdb; ipdb.set_trace()
             return bbox_results[0], segm_results
-
 
     def simple_test_mask(self,
                          x,
