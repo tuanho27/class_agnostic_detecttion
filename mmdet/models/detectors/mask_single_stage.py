@@ -101,7 +101,9 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         # import ipdb; ipdb.set_trace()
         proposal_inputs = outs + (img_metas, proposal_cfg)
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
+        bbox_targets = [(bb, lbl) for bb, lbl in zip(gt_bboxes, gt_labels)]
         proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
+
         
         # Sampling the Proposal to match with format of fcn_mask
         bbox_assigner = build_assigner(self.train_cfg.rcnn.assigner)
@@ -111,14 +113,18 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
             gt_bboxes_ignore = [None for _ in range(num_imgs)]
         sampling_results = []
         for i in range(num_imgs):
-            # import ipdb; ipdb.set_trace()
-            assign_result = bbox_assigner.assign(torch.cat([proposal_list[i], gt_bboxes[i]], 0),
+            ith_proposal = proposal_list[i]
+            num_gt_bboxes = len(gt_bboxes[i])
+
+            ith_proposal = torch.cat([ith_proposal, ith_proposal[:num_gt_bboxes]])
+            ith_proposal[-num_gt_bboxes:, :4] = gt_bboxes[i]
+            assign_result = bbox_assigner.assign(ith_proposal,
                                                     gt_bboxes[i],
                                                     gt_bboxes_ignore[i],
                                                     gt_labels[i])
             sampling_result = bbox_sampler.sample(
                 assign_result,
-                proposal_list[i],
+                ith_proposal,
                 gt_bboxes[i],
                 gt_labels[i],
                 feats=[lvl_feat[i][None] for lvl_feat in x])
@@ -132,8 +138,6 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                     [res.pos_bboxes for res in sampling_results])
     
         gt_rois = bbox2roi(gt_bboxes)
-
-        # import ipdb; ipdb.set_trace()
 
         mask_feats = self.mask_roi_extractor(
                     x[:self.mask_roi_extractor.num_inputs], rois)

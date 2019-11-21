@@ -40,8 +40,7 @@ if debug:
         warmup='linear',
         warmup_iters=30,
         warmup_ratio=1.0 / 3,
-        step=[100,150
-        ])
+        step=[100,150])
 
 # model settings
 model = dict(
