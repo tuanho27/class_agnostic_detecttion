@@ -189,6 +189,7 @@ def _dist_train(model, dataset, cfg, validate=False):
                     DistEvalmAPHook(val_dataset_cfg, **eval_cfg))
 
     if cfg.resume_from:
+        print('[Train] resume_from:', cfg.resume_from)
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
         runner.load_checkpoint(cfg.load_from)

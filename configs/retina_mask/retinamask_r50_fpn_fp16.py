@@ -5,8 +5,6 @@ fp16 = dict(loss_scale=512.)
 
 work_dir = 'work_dirs/retinamask_r50_fpn_fp16'
 data_root = './dataset-coco/'
-
-
 # debug
 # learning policy
 lr_config = dict(
@@ -195,7 +193,6 @@ data = dict(
         pipeline=test_pipeline, num_samples=num_samples))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-# optimizer = dict(type='Adam', lr=0.02)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 
 # yapf:disable
@@ -203,12 +200,11 @@ log_config = dict(
     interval=log_interval,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
 # runtime settings
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from = None
+resume_from = f'{work_dir}/latest.pth'
 workflow = [('train', 1)]
