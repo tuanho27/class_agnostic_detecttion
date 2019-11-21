@@ -36,8 +36,8 @@ def parse_losses(losses):
 
 def batch_processor(model, data, train_mode):
     losses = model(**data)
-    if hasattr(model.module, '_print_running_time'):
-        model.module._print_running_time()
+    # if hasattr(model.module, '_print_running_time'):
+    #     model.module._print_running_time()
 
     loss, log_vars = parse_losses(losses)
 
