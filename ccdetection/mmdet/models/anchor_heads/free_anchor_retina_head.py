@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from mmdet.core import bbox2delta, bbox_overlaps, delta2bbox
+from mmdet.core import bbox2delta, bbox_overlaps, delta2bbox, force_fp32
 from ..registry import HEADS
 from .retina_head import RetinaHead
 
@@ -35,6 +35,7 @@ class FreeAnchorRetinaHead(RetinaHead):
         self.positive_bag_loss_func = positive_bag_loss
         self.negative_bag_loss_func = focal_loss
 
+    @force_fp32(apply_to=('cls_scores', 'bbox_preds'))
     def loss(self,
              cls_scores,
              bbox_preds,

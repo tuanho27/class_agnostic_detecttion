@@ -1,4 +1,5 @@
 # model settings
+fp16 = dict(loss_scale=512.)
 model = dict(
     type='RetinaNet',
     pretrained='torchvision://resnet50',
@@ -83,7 +84,7 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=8,
+    imgs_per_gpu=16,
     workers_per_gpu=8,
     train=dict(
         type=dataset_type,
@@ -101,7 +102,7 @@ data = dict(
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline))
 # optimizer
-optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
