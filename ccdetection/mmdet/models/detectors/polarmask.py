@@ -6,7 +6,6 @@ from mmdet.core import bbox2result, bbox_mask2result
 from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
-from IPython import embed
 import time
 import torch
 

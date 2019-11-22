@@ -27,7 +27,6 @@ from .registry import DATASETS
 from .transforms import (BboxTransform, ImageTransform, MaskTransform,
                          Numpy2Tensor, SegMapTransform, SegmapTransform, HeatmapTransform)
 from .utils import random_scale, to_tensor
-from IPython import embed
 import time
 
 INF = 1e8

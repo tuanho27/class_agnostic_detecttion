@@ -2,7 +2,6 @@ import mmcv
 import numpy as np
 import torch
 import math
-from IPython import embed
 import cv2
 import pycocotools.mask as mask_util
 
