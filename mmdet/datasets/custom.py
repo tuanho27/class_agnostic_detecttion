@@ -136,7 +136,7 @@ class CustomDataset(Dataset):
                 idx = self._rand_another(idx)
                 continue
             return data
-
+            
     def prepare_train_img(self, idx):
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)

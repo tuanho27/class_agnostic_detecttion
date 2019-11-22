@@ -127,6 +127,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         sampling_results = []
         for i in range(num_imgs):
             ith_proposal = proposal_list[i]
+            ith_proposal = gt_bboxes[i]
             assign_result = bbox_assigner.assign(ith_proposal,
                                                     gt_bboxes[i],
                                                     gt_bboxes_ignore[i],
@@ -148,22 +149,16 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         mask_feats = self.mask_roi_extractor(
                     x[:self.mask_roi_extractor.num_inputs], rois)
-        # import ipdb; ipdb.set_trace()
         mask_pred = self.mask_head(mask_feats)
-
         mask_targets = self.mask_head.get_target(sampling_results,
                                                 gt_masks,
                                                 self.train_cfg.rcnn)
-
         pos_labels = torch.cat(
                 [res.pos_gt_labels for res in sampling_results])
 
         loss_mask = self.mask_head.loss(mask_pred, mask_targets,
                                             pos_labels)
         losses.update(loss_mask)
-        # self.mask_time.append(self.timer.since_last_check())
-        # #self.time_records['mask'].append(self.timer.since_last_check())
-
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):

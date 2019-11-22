@@ -10,3 +10,4 @@ SEED=0
 python ./tools/train.py $CONFIG_FILE
 # 
 # sh scripts/4.1_test.sh
+sh scripts/6.1_test.sh  

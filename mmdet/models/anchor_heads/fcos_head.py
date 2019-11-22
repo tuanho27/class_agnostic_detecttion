@@ -191,6 +191,7 @@ class FCOSHead(nn.Module):
                 pos_decoded_target_preds,
                 weight=pos_centerness_targets,
                 avg_factor=pos_centerness_targets.sum())
+            # loss_centerness = torch.mean((pos_centerness-pos_centerness_targets)**2)
             loss_centerness = self.loss_centerness(pos_centerness,
                                                    pos_centerness_targets)
         else:

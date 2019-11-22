@@ -27,7 +27,7 @@ def single_gpu_test(model, data_loader, show=False):
         results.append(result)
 
         if show:
-            model.module.show_result(data, result, show=False, out_file=f'cache/{i}.png')
+            model.module.show_result(data, result, show=False, out_file='cache/1.png')
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
