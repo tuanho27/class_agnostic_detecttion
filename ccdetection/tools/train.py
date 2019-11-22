@@ -40,7 +40,6 @@ def parse_args():
         action='store_true',
         help='automatically scale lr with the number of gpus')
     parser.add_argument('--data_root', help='data root')
-    parser.add_argument('--work_dir', help='work dir')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -72,8 +71,6 @@ def main():
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
     # update configs according to CLI args
-    if args.work_dir is not None:
-        cfg.work_dir = args.work_dir
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
     cfg.gpus = args.gpus
