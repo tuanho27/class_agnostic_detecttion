@@ -8,7 +8,6 @@ from mmdet.ops import ModulatedDeformConvPack
 from ..builder import build_loss
 from ..registry import HEADS
 from ..utils import ConvModule, Scale, bias_init_with_prob, build_norm_layer
-from IPython import embed
 import cv2
 import numpy as np
 import math

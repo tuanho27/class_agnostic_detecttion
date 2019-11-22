@@ -1,4 +1,5 @@
 # model settings
+fp16 = dict(loss_scale=512.)
 model = dict(
     type='RetinaNet',
     pretrained='torchvision://resnet101',
