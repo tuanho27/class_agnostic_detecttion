@@ -4,6 +4,7 @@ from .double_head_rcnn import DoubleHeadRCNN
 from .fast_rcnn import FastRCNN
 from .faster_rcnn import FasterRCNN
 from .fcos import FCOS
+from .fcos_mask import FCOSMask
 from .fovea import FOVEA
 from .grid_rcnn import GridRCNN
 from .htc import HybridTaskCascade
@@ -24,5 +25,5 @@ __all__ = [
     'DoubleHeadRCNN', 'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN',
     'RepPointsDetector', 'FOVEA',
     #CC
-    'MaskSingleStateDetector', 'RetinaMask',
+    'MaskSingleStateDetector', 'RetinaMask','FCOSMask',
 ]

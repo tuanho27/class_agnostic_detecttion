@@ -27,7 +27,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                  test_cfg=None,
                  pretrained=None):
         self.timer = mmcv.Timer()
-        self.time_records = {x:[] for x in ['proposal', 'box', 'mask', 'assign']}
+        #self.time_records = {x:[] for x in ['proposal', 'box', 'mask', 'assign']}
 
         super(MaskSingleStateDetector, self).__init__()
         self.backbone = builder.build_backbone(backbone)
@@ -57,13 +57,13 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         self.mask_roi_extractor.init_weights()
         self.mask_head.init_weights()
 
-    def _print_running_time(self):
-        # box_time = np.mean(self.box_time)
-        # mask_time = np.mean(self.mask_time)
-        s = ''
-        for k, v in self.time_records.items():
-            s+=('{}: {:.4f}\t'.format(k,np.mean(v)))
-        print(s)
+    # def _print_running_time(self):
+    #     # box_time = np.mean(self.box_time)
+    #     # mask_time = np.mean(self.mask_time)
+    #     s = ''
+    #     for k, v in self.time_records.items():
+    #         s+=('{}: {:.4f}\t'.format(k,np.mean(v)))
+    #     print(s)
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck
         """
@@ -103,7 +103,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-        self.time_records['box'].append(self.timer.since_last_check())
+        #self.time_records['box'].append(self.timer.since_last_check())
         # The below code is adopted from two_stage.py
         # Proposal bboxes by nms/get bbox with top predicted prob
         proposal_cfg = self.train_cfg.get('rpn_proposal',
@@ -111,7 +111,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         proposal_inputs = outs + (img_metas, proposal_cfg)
         bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
-        self.time_records['proposal'].append(self.timer.since_last_check())
+        #self.time_records['proposal'].append(self.timer.since_last_check())
         # collect
         bbox_targets = [(bb, lbl) for bb, lbl in zip(gt_bboxes, gt_labels)]
         proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
@@ -127,14 +127,6 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         sampling_results = []
         for i in range(num_imgs):
             ith_proposal = proposal_list[i]
-            # num_gt_bboxes = len(gt_bboxes[i])
-
-            # dummy_gt = torch.stack([ith_proposal[0]]*num_gt_bboxes)
-            # dummy_gt[:,:4] = gt_bboxes[i]
-            # ith_proposal = torch.cat([ith_proposal, dummy_gt])
-
-            # ith_proposal[-num_gt_bboxes:, :4] = gt_bboxes[i]
-
             assign_result = bbox_assigner.assign(ith_proposal,
                                                     gt_bboxes[i],
                                                     gt_bboxes_ignore[i],
@@ -147,10 +139,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                 feats=[lvl_feat[i][None] for lvl_feat in x])
             sampling_results.append(sampling_result)
 
-        # Mask head
-        # import ipdb; ipdb.set_trace()
-        self.time_records['assign'].append(self.timer.since_last_check())
-
+        # #self.time_records['assign'].append(self.timer.since_last_check())
 
         rois = bbox2roi(
                     [res.pos_bboxes for res in sampling_results])
@@ -159,7 +148,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         mask_feats = self.mask_roi_extractor(
                     x[:self.mask_roi_extractor.num_inputs], rois)
-
+        # import ipdb; ipdb.set_trace()
         mask_pred = self.mask_head(mask_feats)
 
         mask_targets = self.mask_head.get_target(sampling_results,
@@ -173,7 +162,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                                             pos_labels)
         losses.update(loss_mask)
         # self.mask_time.append(self.timer.since_last_check())
-        self.time_records['mask'].append(self.timer.since_last_check())
+        # #self.time_records['mask'].append(self.timer.since_last_check())
 
         return losses
 

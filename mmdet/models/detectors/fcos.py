@@ -14,3 +14,4 @@ class FCOS(SingleStageDetector):
                  pretrained=None):
         super(FCOS, self).__init__(backbone, neck, bbox_head, train_cfg,
                                    test_cfg, pretrained)
+
