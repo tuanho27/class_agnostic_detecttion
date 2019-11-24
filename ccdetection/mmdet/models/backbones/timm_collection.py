@@ -108,47 +108,48 @@ genetic_efficientnet_pyramid = {
 timm_channel_pyramid = {**densenet_pyramid, **genetic_efficientnet_pyramid, **dualpathnet, **gluon_resnet_pyramid}
 
 def get_default_feature_index(scale):
-    if isinstance(scale, list):
-        scale = np.array(scale)
+	if isinstance(scale, list):
+		scale = np.array(scale)
 
-    idxs = []
-    # print(scale)
-    for s in [4, 8, 16, 32]:
-        if s > max(scale):
-            break
-        idx = np.where(scale == s)[0].max()
-        idxs.append(idx)
-    return idxs
+	idxs = []
+	# print(scale)
+	for s in [4, 8, 16, 32]:
+		if s > max(scale):
+			break
+		idx = np.where(scale == s)[0].max()
+		idxs.append(idx)
+	return idxs
 
 
 @BACKBONES.register_module
 class TimmCollection(nn.Module):
-    def __init__(self, model_name, pretrained=True, feature_idxs=None, norm_eval=True):
-        super(TimmCollection, self).__init__()
-        self.model = timm.create_model(model_name, pretrained=pretrained)
-        if norm_eval:
-            for m in self.model.modules():
-                # trick: eval have effect on BatchNorm only
-                if isinstance(m, _BatchNorm):
-                    m.eval()
+	def __init__(self, model_name, pretrained=True, feature_idxs=None, norm_eval=True, **kwargs):
+		super(TimmCollection, self).__init__()
+		self.model = timm.create_model(model_name, pretrained=pretrained,**kwargs)
+		if norm_eval:
+			for m in self.model.modules():
+				# trick: eval have effect on BatchNorm only
+				if isinstance(m, _BatchNorm):
+					m.eval()
 
+		if feature_idxs is None:
+			inputs = torch.zeros([1, 3, 128, 128])
+			outs = self.model.extract_features(inputs, None)
+			scale = [int(128/_.shape[-1]) for _ in outs]
+			self.feature_idxs  = get_default_feature_index(scale)
+			# print(scale, self.feature_idxs)
+			# print('feature_idxs: ', self.feature_idxs)
+		else:
+			self.feature_idxs = feature_idxs
 
-        if feature_idxs is None:
-            inputs = torch.zeros([2, 3, 256, 256])
-            outs = self.model.extract_features(inputs, None)
-            scale = [int(256/_.shape[-1]) for _ in outs]
-            self.feature_idxs  = get_default_feature_index(scale)
-        else:
-            self.feature_idxs = feature_idxs
+	def forward(self, x):
+		outs = self.model.extract_features(x, feature_idxs = self.feature_idxs)
+		return outs
 
-    def forward(self, x):
-        outs = self.model.extract_features(x, feature_idxs = self.feature_idxs)
-        #return outs
-        #import ipdb; ipdb.set_trace()
-        return tuple([out for out in outs])
+	def init_weights(self, pretrained):
+		if pretrained:
+			self.load_state_dict(pretrained)
 
-
-    def init_weights(self, pretrained):
-        if pretrained:
-            self.load_state_dict(pretrained)
-        # if pretrained:
+	def freeze(self):
+		for p in self.model.parameters():
+			p.requires_grad = False
