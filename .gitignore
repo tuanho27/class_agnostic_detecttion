@@ -128,3 +128,5 @@ work_dirs/
 *.pth
 .gitmessage.txt
 .mycommitmsg.txt
+mmdetection
+

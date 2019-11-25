@@ -6,7 +6,7 @@ pip install -v -e .
 
 # Create symbolic link from ccdetection to mmdetection
 cd ..
-python ccdet_setup.py
+python ccsetup.py
 conda install mpmath pandas -y
 conda install -c conda-forge json_tricks -y
 pip install torch_dct imagecorruptions albumentations pycocotools

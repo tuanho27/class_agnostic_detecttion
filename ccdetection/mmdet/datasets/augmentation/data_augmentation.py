@@ -7,7 +7,7 @@ from PIL import Image
 
 from .auto_classification import AutoAugmentation
 from .auto_detection import distort_image_with_autoaugment
-from .styleaug import StyleAugmentor
+# from .styleaug import StyleAugmentor
 
 import torch
 from torchvision.transforms import ToTensor, ToPILImage
