@@ -129,3 +129,4 @@ work_dirs/
 *.pth
 .gitmessage.txt
 .mycommitmsg.txtmodel_zoo
+dev-detection
