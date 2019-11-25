@@ -1,7 +1,11 @@
-# mmdetection/
+mmdetection/
+workdir/
+work_dirs/
 __pycache__/
 *.png
 *.jpg
+*.swo
+*.swp
 # command_train.sh
 # command_test.sh
 
@@ -128,3 +132,5 @@ work_dirs/
 *.pth
 .gitmessage.txt
 .mycommitmsg.txt
+
+

@@ -1,12 +1,11 @@
 from socket import gethostbyname
 # debug
-debug=True
+debug = True
 num_samples = None
-workers_per_gpu = 2
+workers_per_gpu = 8
 if debug:
     num_samples = 200
     workers_per_gpu = 1
-# fp16 settings
 
 # Server adaptation
 #if 'X399' in gethostname():

@@ -30,7 +30,6 @@ ccfiles = getListOfFiles(root_dir+'/ccdetection/')
 
 for src_file in ccfiles:
 	f=src_file.replace(root_dir,'')
-	print(f)
 	dst_file = src_file.replace('ccdetection','mmdetection')
 	dst_parent = os.path.dirname(dst_file)
 	os.makedirs(dst_parent,exist_ok=True)
@@ -40,4 +39,5 @@ for src_file in ccfiles:
 		os.rename(dst_file, dst_file.replace('.py','_backup.py'))
 
 	if not os.path.isdir(dst_file):
+		print(f)
 		os.symlink(src_file, dst_file)

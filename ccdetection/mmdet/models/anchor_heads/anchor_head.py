@@ -8,7 +8,7 @@ from mmcv.cnn import normal_init
 from mmdet.core import AnchorGenerator, anchor_target, delta2bbox, force_fp32, multi_apply, multiclass_nms
 from ..builder import build_loss
 from ..registry import HEADS
-
+from pyson.utils import multi_thread
 
 @HEADS.register_module
 class AnchorHead(nn.Module):
@@ -229,8 +229,9 @@ class AnchorHead(nn.Module):
                 device=device) for i in range(num_levels)
         ]
         result_list = []
-        for img_id in range(len(img_metas)):
-
+        # import ipdb; ipdb.set_trace()
+        # for img_id in range(len(img_metas)):
+        def f(img_id):
             cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
             bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]
 
@@ -239,7 +240,7 @@ class AnchorHead(nn.Module):
 
             proposals = self.get_bboxes_single(cls_score_list, bbox_pred_list, mlvl_anchors, img_shape, scale_factor, cfg, rescale)
             result_list.append(proposals)
-
+        multi_thread(f, range(len(img_metas)))
         return result_list
 
     def get_bboxes_single(self, cls_score_list, bbox_pred_list, mlvl_anchors, img_shape, scale_factor, cfg, rescale=False):

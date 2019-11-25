@@ -26,8 +26,8 @@ class WeightSum(nn.Module):
 class BiFPN(nn.Module):
     def __init__(self,
                  out_channels,
-                 num_outs=5,                 
-                 fpn_conv_groups=None,   
+                 num_outs=5,
+                 fpn_conv_groups=None,
                  conv_cfg=None,
                  norm_cfg=None,
                  activation=None):
@@ -72,14 +72,14 @@ class BiFPN(nn.Module):
     def forward(self, P_in):
         assert len(P_in) == self.num_outs
         # build from top-down path
-        P_td = [P.clone() for P in P_in]     
+        P_td = [P.clone() for P in P_in]
         for i in range(self.num_outs-1, 1, -1):
             P_up = F.interpolate(P_td[i], scale_factor=2, mode='nearest')
             P_fuse = self.fuse_td[i-1]([P_td[i - 1],P_up])
             P_td[i - 1] = self.fpn_down[i-1](P_fuse)
-                
+
         # build from bottom-up path
-        P_out = P_td # Just change name 
+        P_out = P_td # Just change name
         for i in range(1,self.num_outs):
             P_down = F.avg_pool2d(P_out[i-1],kernel_size=2,stride=2)
             if i==self.num_outs-1:
@@ -87,7 +87,7 @@ class BiFPN(nn.Module):
             else:
                 P_fuse = self.fuse_out[i-1]([P_in[i],P_out[i],P_down])
             P_out[i] = self.fpn_up[i-1](P_fuse)
-        
+
         return P_out
 
 @NECKS.register_module
@@ -170,8 +170,8 @@ class StackBiFPN(nn.Module):
                     self.extra_convs.append(nn.MaxPool2d(kernel_Size=2,stride=2))
 
         self.stack_bifpn = nn.ModuleList([BiFPN(out_channels,
-                                 num_outs, 
-                                fpn_conv_groups,   
+                                num_outs,
+                                self.fpn_conv_groups,
                                 conv_cfg,
                                 norm_cfg,
                                 activation) ]*fpn_stack)
@@ -180,7 +180,7 @@ class StackBiFPN(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 xavier_init(m, distribution='uniform')
-     
+
         for m in self.stack_bifpn:
             m.init_weights()
 
@@ -202,7 +202,7 @@ class StackBiFPN(nn.Module):
                 in_feature = P_out[-1]
             for extra_conv in self.extra_convs:
                 in_feature = extra_conv(in_feature)
-                P_out.append(in_feature)                                          
+                P_out.append(in_feature)
 
         for m in self.stack_bifpn:
             P_out = m(P_out)
