@@ -130,4 +130,4 @@ work_dirs/
 .mycommitmsg.txt
 mmdetection
 
-*.swo
+**/*.swo
