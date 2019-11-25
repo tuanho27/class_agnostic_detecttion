@@ -30,6 +30,7 @@ def coco_eval(result_files,
         return
 
     for res_type in result_types:
+        # import ipdb; ipdb.set_trace()
         if isinstance(result_files, str):
             result_file = result_files
         elif isinstance(result_files, dict):

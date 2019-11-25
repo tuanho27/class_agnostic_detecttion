@@ -1,5 +1,5 @@
-work_dir = 'work_dirs/mask_rcnn_r50_fpn_1x'
-data_root= './dataset-coco/'
+work_dir = '/home/member/Workspace/xuanphu/Work/Checkpoints/MaskRCNN'
+data_root= '/home/member/Workspace/dataset/coco/'
 # model settings
 model = dict(
     type='MaskRCNN',
@@ -131,7 +131,8 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(1333, 800),
+        # img_scale=(1333, 800),
+        img_scale=(1280, 768),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -143,22 +144,22 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=2,
+    imgs_per_gpu=8,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'train2017/',
+        img_prefix=data_root + 'images/' + 'train2017/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)

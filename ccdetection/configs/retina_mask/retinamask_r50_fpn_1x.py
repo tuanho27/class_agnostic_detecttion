@@ -1,3 +1,4 @@
+from socket import gethostbyname
 # debug
 debug=True
 num_samples = None
@@ -8,50 +9,52 @@ if debug:
 # fp16 settings
 
 # Server adaptation
-if 'X399' in gethostname():
-	imgs_per_gpu = 2
-	total_epochs = 12
-	load_from = None
-	resume_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root = '/home/cybercore/Workspace/dataset/coco/'
-	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_newloss/'
-	fp16 = dict(loss_scale=512.)
+#if 'X399' in gethostname():
+#	imgs_per_gpu = 2
+#	total_epochs = 12
+#	load_from = None
+#	resume_from = None
+#	pretrained = 'torchvision://resnet50'
+#	data_root = '/home/cybercore/Workspace/dataset/coco/'
+#	work_dir = '/home/cybercore/thuync/checkpoints/retinamask_r50_newloss/'
+#	fp16 = dict(loss_scale=512.)
 
-elif '184' in gethostname():
-	imgs_per_gpu = 16
-	total_epochs = 12
-	resume_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
-	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
-	fp16 = dict(loss_scale=512.)
+#elif '184' in gethostname():
+lr_start = 1e-2
+lr_end = 1e-4
+imgs_per_gpu = 16
+total_epochs = 12
+resume_from = None
+pretrained = 'torchvision://resnet50'
+data_root= '/home/member/Workspace/dataset/coco/'
+work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
+load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
+fp16 = dict(loss_scale=512.)
 
-elif '185' in gethostname():
-	lr_start = 1e-2
-	lr_end = 1e-4
-	imgs_per_gpu = 16
-	total_epochs = 12
-	resume_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
-	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
-	fp16 = dict(loss_scale=512.)
+#elif '185' in gethostname():
+#	lr_start = 1e-2
+#	lr_end = 1e-4
+#	imgs_per_gpu = 16
+#	total_epochs = 12
+#	resume_from = None
+#	pretrained = 'torchvision://resnet50'
+#	data_root= '/home/member/Workspace/dataset/coco/'
+#	work_dir = '/home/member/Workspace/thuync/checkpoints/retinamask_r50_newloss/'
+#	load_from = "/home/member/Workspace/thuync/checkpoints/retinanet_r50/retinanet_r50_fpn_1x_20181125-7b0c2548.pth"
+#	fp16 = dict(loss_scale=512.)
 
-elif '186' in gethostname():
-	imgs_per_gpu = 16
-	total_epochs = 12
-	load_from = None
-	resume_from = None
-	pretrained = 'torchvision://resnet50'
-	data_root= '/home/user/thuync/datasets/coco/'
-	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
-	fp16 = dict(loss_scale=512.)
+#elif '186' in gethostname():
+#	imgs_per_gpu = 16
+#	total_epochs = 12
+#	load_from = None
+#	resume_from = None
+#	pretrained = 'torchvision://resnet50'
+#	data_root= '/home/user/thuync/datasets/coco/'
+#	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
+#	fp16 = dict(loss_scale=512.)
 
-work_dir = 'work_dirs/retinamask_r50_fpn_1x'
-data_root= './dataset-coco/'
+# work_dir = 'work_dirs/retinamask_r50_fpn_1x'
+# data_root= './dataset-coco/'
 # model settings
 model = dict(
 	type='RetinaMask',
