@@ -19,7 +19,6 @@ from .mask_single_stage import MaskSingleStateDetector
 from .retinamask import RetinaMask
 from .polarmask import PolarMask
 
-
 __all__ = [
     'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
     'FastRCNN', 'FasterRCNN', 'MaskRCNN', 'CascadeRCNN', 'HybridTaskCascade',
