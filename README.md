@@ -6,11 +6,11 @@ cd ccdetpose
 conda create -n ccdetpose python=3.7 -y
 conda activate ccdetpose
 
-conda install pytorch torchvision cudatoolkit=10.0 -c pytorch -y 
+conda install pytorch torchvision cudatoolkit=10.0 -c pytorch -y
 conda install cython pyyaml -y
-conda install mpmath pandas -y
+conda install mpmath pandas tqdm -y
 conda install -c conda-forge json_tricks -y
-pip install torch_dct imagecorruptions albumentations pycocotools
+pip install pytest torch_dct imagecorruptions albumentations pycocotools
 
 #Setup mmdetection
 rm -rf mmdetection
@@ -21,6 +21,6 @@ python setup.py develop
 
 # Create symbolic link from ccdetection to mmdetection
 cd ..
-python ccdet_setup.py
+python ccsetup.py
 pip install -e mmdetection/mmdet/models/backbones/pytorch-image-models
 ```

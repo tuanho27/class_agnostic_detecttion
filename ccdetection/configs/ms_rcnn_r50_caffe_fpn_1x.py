@@ -1,16 +1,15 @@
-work_dir = '/home/member/Workspace/xuanphu/Work/Checkpoints/MaskRCNN'
-data_root= '/home/member/Workspace/dataset/coco/'
 # model settings
 model = dict(
-    type='MaskRCNN',
-    pretrained='torchvision://resnet50',
+    type='MaskScoringRCNN',
+    pretrained='open-mmlab://resnet50_caffe',
     backbone=dict(
         type='ResNet',
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        style='pytorch'),
+        norm_cfg=dict(type='BN', requires_grad=False),
+        style='caffe'),
     neck=dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
@@ -58,7 +57,16 @@ model = dict(
         conv_out_channels=256,
         num_classes=81,
         loss_mask=dict(
-            type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)))
+            type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)),
+    mask_iou_head=dict(
+        type='MaskIoUHead',
+        num_convs=4,
+        num_fcs=2,
+        roi_feat_size=14,
+        in_channels=256,
+        conv_out_channels=256,
+        fc_out_channels=1024,
+        num_classes=81))
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(
@@ -99,6 +107,7 @@ train_cfg = dict(
             add_gt_as_proposals=True),
         mask_size=28,
         pos_weight=-1,
+        mask_thr_binary=0.5,
         debug=False))
 test_cfg = dict(
     rpn=dict(
@@ -115,8 +124,9 @@ test_cfg = dict(
         mask_thr_binary=0.5))
 # dataset settings
 dataset_type = 'CocoDataset'
+data_root = '/home/member/Workspace/dataset/coco/'
 img_norm_cfg = dict(
-    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+    mean=[102.9801, 115.9465, 122.7717], std=[1.0, 1.0, 1.0], to_rgb=False)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
@@ -131,8 +141,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        # img_scale=(1333, 800),
-        img_scale=(1280, 768),
+        img_scale=(1333, 800),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -144,22 +153,22 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=8,
+    imgs_per_gpu=2,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'images/train2017/',
+        img_prefix=data_root + 'images/' +  'train2017/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
@@ -180,11 +189,11 @@ log_config = dict(
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
-evaluation = dict(interval=1)
 # runtime settings
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
+work_dir = '/home/member/Workspace/xuanphu/Work/Checkpoints/MaskRCNN'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

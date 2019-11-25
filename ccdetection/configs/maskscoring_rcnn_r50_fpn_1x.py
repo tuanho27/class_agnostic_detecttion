@@ -1,12 +1,22 @@
+import os
+
+#if raw_input("Begin fake Access Point? (y/n): ")=="y":
+#    os.system("airmon-ng")
+#    interface = input("Enter your Interface name: ")
+#    os.system("airmon-ng "+interface+" start")
+
 work_dir = '/home/member/Workspace/xuanphu/Work/Checkpoints/MaskRCNN'
+# work_dir = '/home/member/Workspace/xuanphu/Work/pretrained_models'
 data_root= '/home/member/Workspace/dataset/coco/'
 # model settings
 model = dict(
-    type='MaskRCNN',
+    type='MaskScoringRCNN',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',
         depth=50,
+        # groups=64, #
+        # base_width=64, #
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
@@ -58,7 +68,16 @@ model = dict(
         conv_out_channels=256,
         num_classes=81,
         loss_mask=dict(
-            type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)))
+            type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)),
+    mask_iou_head=dict(
+        type='MaskIoUHead',
+        num_convs=4,
+        num_fcs=2,
+        roi_feat_size=14,
+        in_channels=256,
+        conv_out_channels=256,
+        fc_out_channels=1024,
+        num_classes=81))
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(
@@ -98,6 +117,7 @@ train_cfg = dict(
             neg_pos_ub=-1,
             add_gt_as_proposals=True),
         mask_size=28,
+        mask_thr_binary=0.5,
         pos_weight=-1,
         debug=False))
 test_cfg = dict(
@@ -131,8 +151,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        # img_scale=(1333, 800),
-        img_scale=(1280, 768),
+        img_scale=(1333, 800),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -144,22 +163,22 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=8,
+    imgs_per_gpu=4,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'images/train2017/',
+        img_prefix=data_root + 'images/' + 'train2017/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/' + 'val2017/',
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
@@ -186,5 +205,5 @@ total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from = None
+resume_from = None # '/home/member/Workspace/xuanphu/Work/pretrained_models/epoch_5.pth' 
 workflow = [('train', 1)]
