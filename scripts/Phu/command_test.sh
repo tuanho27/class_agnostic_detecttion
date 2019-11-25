@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CONFIG_FILE="/home/member/Workspace/xuanphu/Work/ccdetpose/ccdetection/configs/ms_rcnn_r50_caffe_fpn_1x_multiply.py"
+CONFIG_FILE="/home/member/Workspace/xuanphu/Work/ccdetpose/ccdetection/configs/maskscoring/ms_rcnn_r50_caffe_fpn_1x_multiply.py"
 WORK_DIR="/home/member/Workspace/xuanphu/Work/Checkpoints/MS_RCNN_Multiply"
 # WORK_DIR="/home/member/Workspace/xuanphu/Work/pretrained_models"
 
