@@ -1,4 +1,4 @@
-merge
+merge/*detection
 mmdetection/
 __pycache__/
 *.png
