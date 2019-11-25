@@ -14,7 +14,6 @@ from .adaptive_robust_loss import AdaptiveRobustLoss_C, AdaptiveRobustLoss_R
 from .focal_kl_loss import FocalKLLoss
 from .generalized_iou_loss import GeneralizedIOULoss
 from .segm_focal_loss import SegmFocalLoss
-from .mask_iou_loss import MaskIOULoss, MaskIOULoss_v2, MaskIOULoss_v3
 
 
 __all__ = [
@@ -26,9 +25,8 @@ __all__ = [
     'weight_reduce_loss', 'weighted_loss',
 
     # Cybercore
-    'AutoFocalLoss', 'AutoFocalLoss_Regression',
+    'AutoFocalLoss', 'AutoFocalLoss_Regression', 
     'AdaptiveRobustLoss_C', 'AdaptiveRobustLoss_R',
     'FocalKLLoss', 'SegmFocalLoss',
     'GeneralizedIOULoss',
-    'MaskIOULoss', 'MaskIOULoss_v2', 'MaskIOULoss_v3',
 ]

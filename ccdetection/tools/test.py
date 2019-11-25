@@ -27,7 +27,7 @@ def single_gpu_test(model, data_loader, show=False):
         results.append(result)
 
         if show:
-            model.module.show_result(data, result)
+            model.module.show_result(data, result, show=False, out_file='cache/1.png')
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
@@ -123,8 +123,6 @@ def parse_args():
         default='none',
         help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
-    parser.add_argument('--data_root', help='data root')
-    parser.add_argument('--work_dir', help='work dir')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -145,19 +143,6 @@ def main():
         args.json_out = args.json_out[:-5]
 
     cfg = mmcv.Config.fromfile(args.config)
-
-    # update workdir and data_root:
-    if args.work_dir:
-        cfg.work_dir  = args.work_dir
-    if args.data_root:
-        cfg.data.train.ann_file  = cfg.data.train.ann_file.replace(cfg.data_root,args.data_root)
-        cfg.data.train.img_prefix= cfg.data.train.img_prefix.replace(cfg.data_root,args.data_root)
-        cfg.data.val.ann_file    = cfg.data.val.ann_file.replace(cfg.data_root,args.data_root)
-        cfg.data.val.img_prefix  = cfg.data.val.img_prefix.replace(cfg.data_root,args.data_root)
-        cfg.data.test.ann_file   = cfg.data.test.ann_file.replace(cfg.data_root,args.data_root)
-        cfg.data.test.img_prefix = cfg.data.test.img_prefix.replace(cfg.data_root,args.data_root)
-        cfg.data_root = args.data_root
-
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
@@ -193,7 +178,7 @@ def main():
         model.CLASSES = checkpoint['meta']['CLASSES']
     else:
         model.CLASSES = dataset.CLASSES
-
+    # import ipdb; ipdb.set_trace()
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         outputs = single_gpu_test(model, data_loader, args.show)

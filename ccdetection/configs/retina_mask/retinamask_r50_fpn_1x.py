@@ -1,11 +1,10 @@
 # debug
-debug=True
+debug = True
 num_samples = None
-workers_per_gpu = 2
+workers_per_gpu = 8
 if debug:
     num_samples = 200
     workers_per_gpu = 1
-# fp16 settings
 
 # Server adaptation
 if 'X399' in gethostname():
@@ -50,8 +49,6 @@ elif '186' in gethostname():
 	work_dir = '/home/user/thuync/checkpoints/retinamask_r50_newloss/'
 	fp16 = dict(loss_scale=512.)
 
-work_dir = 'work_dirs/retinamask_r50_fpn_1x'
-data_root= './dataset-coco/'
 # model settings
 model = dict(
 	type='RetinaMask',

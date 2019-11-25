@@ -1,7 +1,7 @@
 import os
 
 # os.system(' git reset master --hard   ')
-# os.system(' git checkout dev ccdetection   ')
+os.system(' git checkout dev ccdetection   ')
 
 if os.path.exists('gitdiff.txt'):
     os.remove('gitdiff.txt')

@@ -664,8 +664,9 @@ class GenEfficientNet(nn.Module):
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  pad_type='', act_fn=F.relu, drop_rate=0., drop_connect_rate=0.,
                  se_gate_fn=sigmoid, se_reduce_mid=False, bn_args=_BN_ARGS_PT,
-                 global_pool='avg', head_conv='default', weight_init='goog'):
+                 global_pool='avg', head_conv='default', weight_init='goog', is_detection_model=True):
         super(GenEfficientNet, self).__init__()
+        self.is_detection_model = is_detection_model
         self.num_classes = num_classes
         self.drop_rate = drop_rate
         self.act_fn = act_fn
@@ -739,10 +740,13 @@ class GenEfficientNet(nn.Module):
         return x
 
     def forward(self, x):
-        x = self.forward_features(x)
-        if self.drop_rate > 0.:
-            x = F.dropout(x, p=self.drop_rate, training=self.training)
-        return self.classifier(x)
+        if self.is_detection_model:
+            return self.extract_features(x)
+        else:
+            x = self.forward_features(x)
+            if self.drop_rate > 0.:
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+            return self.classifier(x)
 
     def extract_features(self, x, feature_idxs=None):
         '''
@@ -756,8 +760,8 @@ class GenEfficientNet(nn.Module):
         outs = []
         for i, block in enumerate(self.blocks):
             x  = block(x)
-            if feature_idxs is None or i in feature_idxs :
-                outs.append(x)
+            # if feature_idxs is None or i in feature_idxs :
+            outs.append(x)
         return outs
 
 def _gen_mnasnet_a1(channel_multiplier, num_classes=1000, **kwargs):

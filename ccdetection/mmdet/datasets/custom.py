@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from .pipelines import Compose
 from .registry import DATASETS
-# from pyson.utils import memoize
+from pyson.utils import memoize
 
 @DATASETS.register_module
 class CustomDataset(Dataset):
@@ -86,7 +86,7 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         return len(self.img_infos)
-
+    
     def load_annotations(self, ann_file):
         return mmcv.load(ann_file)
 
@@ -136,7 +136,7 @@ class CustomDataset(Dataset):
                 idx = self._rand_another(idx)
                 continue
             return data
-
+            
     def prepare_train_img(self, idx):
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)
