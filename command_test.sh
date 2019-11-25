@@ -4,7 +4,7 @@ CONFIG_FILE="/home/member/Workspace/xuanphu/Work/ccdetpose/ccdetection/configs/m
 WORK_DIR="/home/member/Workspace/xuanphu/Work/Checkpoints/MS_RCNN_Multiply"
 # WORK_DIR="/home/member/Workspace/xuanphu/Work/pretrained_models"
 
-th=6
+th=15
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 # CHECKPOINT_FILE="${WORK_DIR}/ms_rcnn_r50_caffe_fpn_1x.pth"
 
