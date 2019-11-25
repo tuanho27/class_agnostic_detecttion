@@ -123,11 +123,8 @@ def parse_args():
         default='none',
         help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
-<<<<<<< HEAD
-=======
     parser.add_argument('--data_root', help='data root')
     parser.add_argument('--work_dir', help='work dir')
->>>>>>> master
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -148,8 +145,6 @@ def main():
         args.json_out = args.json_out[:-5]
 
     cfg = mmcv.Config.fromfile(args.config)
-<<<<<<< HEAD
-=======
 
     # update workdir and data_root:
     if args.work_dir:
@@ -163,7 +158,6 @@ def main():
         cfg.data.test.img_prefix = cfg.data.test.img_prefix.replace(cfg.data_root,args.data_root)
         cfg.data_root = args.data_root
 
->>>>>>> master
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
@@ -199,11 +193,6 @@ def main():
         model.CLASSES = checkpoint['meta']['CLASSES']
     else:
         model.CLASSES = dataset.CLASSES
-<<<<<<< HEAD
-    # import ipdb; ipdb.set_trace()
-=======
-
->>>>>>> master
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         outputs = single_gpu_test(model, data_loader, args.show)
