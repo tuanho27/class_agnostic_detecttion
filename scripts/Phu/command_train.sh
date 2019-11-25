@@ -1,4 +1,4 @@
-CONFIG_FILE='ccdetection/configs/ms_rcnn_r50_caffe_fpn_1x_multiply.py'
+CONFIG_FILE='/home/member/Workspace/xuanphu/Work/ccdetpose/ccdetection/configs/maskscoring/ms_rcnn_r50_caffe_fpn_1x_multiply.py'
 # RESUME_FILE='/home/member/Workspace/xuanphu/Work/pretrained_models/epoch_5.pth'
 SEED=0
 GPUS=2
