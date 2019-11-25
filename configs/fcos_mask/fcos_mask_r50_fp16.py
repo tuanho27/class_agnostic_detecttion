@@ -27,15 +27,15 @@ log_level = 'INFO'
 work_dir = './work_dirs/fcos_mask_r50_fp16'
 load_from = None
 # resume_from = 'model_zoo/fcos_r50_caffe_fpn_1x_4gpu_20190516-a7cac5ff.pth'
-resume_from = 'model_zoo/fcos_mstrain_640_800_r50_caffe_fpn_gn_2x_4gpu_20190516-f7329d80.pth'
-# resume_from = f'{work_dir}/latest.pth'
+# resume_from = 'model_zoo/fcos_mstrain_640_800_r50_caffe_fpn_gn_2x_4gpu_20190516-f7329d80.pth'
+resume_from = f'{work_dir}/latest.pth'
 workflow = [('train', 1)]
 num_samples = None
 
 train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
 roi_out_size = 14
-imgs_per_gpu = 8
+imgs_per_gpu = 12
 if debug:
     imgs_per_gpu=1
     # work_dir += '/debug'
@@ -225,7 +225,7 @@ data = dict(
 # optimizer
 optimizer = dict(
     type='SGD',
-    lr=0.01,
+    lr=0.015,
     momentum=0.9,
     weight_decay=0.0001,
     paramwise_options=dict(bias_lr_mult=2., bias_decay_mult=0.))
