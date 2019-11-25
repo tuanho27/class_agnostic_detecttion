@@ -9,6 +9,7 @@ from .grid_rcnn import GridRCNN
 from .htc import HybridTaskCascade
 from .mask_rcnn import MaskRCNN
 from .mask_scoring_rcnn import MaskScoringRCNN
+from .mask_scoring_rcnn_multiply import MaskScoringRCNN_Multiply
 from .reppoints_detector import RepPointsDetector
 from .retinanet import RetinaNet
 from .rpn import RPN
@@ -22,7 +23,7 @@ __all__ = [
     'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
     'FastRCNN', 'FasterRCNN', 'MaskRCNN', 'CascadeRCNN', 'HybridTaskCascade',
     'DoubleHeadRCNN', 'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN',
-    'RepPointsDetector', 'FOVEA',
+    'RepPointsDetector', 'FOVEA', 'MaskScoringRCNN_Multiply',
     #CC
     'MaskSingleStateDetector', 'RetinaMask',
     'PolarMask',
