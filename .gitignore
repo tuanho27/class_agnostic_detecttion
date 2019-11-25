@@ -1,4 +1,4 @@
-mmdetection/
+#mmdetection/
 workdir/
 work_dirs/
 __pycache__/
