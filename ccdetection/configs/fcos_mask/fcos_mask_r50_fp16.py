@@ -3,7 +3,7 @@
 fp16 = dict(loss_scale=512.)
 
 
-debug = False
+debug = True
 lr_config = dict(
     policy='step',
     warmup='constant',
