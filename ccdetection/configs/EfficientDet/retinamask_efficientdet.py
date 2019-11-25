@@ -60,6 +60,7 @@ model = dict(
 		start_level=1,
 		num_outs=5,
 		fpn_stack=model_cfg['fpn_stack'],
+		fpn_conv_groups=model_cfg['fpn_channel'], #Use DepthWise
 		add_extra_convs=True,
 	),
 	bbox_head=dict(
@@ -149,7 +150,7 @@ train_pipeline = [
 	dict(type='Resize', img_scale=model_cfg['ImgSize'], keep_ratio=True),
 	dict(type='RandomFlip', flip_ratio=0.5),
 	dict(type='Normalize', **img_norm_cfg),
-	dict(type='Pad', size_divisor=128), 
+	dict(type='Pad', size_divisor=128),
 	dict(type='DefaultFormatBundle'),
 	dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
 ]

@@ -1,5 +1,4 @@
-merge/*detection
-mmdetection/
+# mmdetection/
 __pycache__/
 *.png
 *.jpg
@@ -128,5 +127,4 @@ work_dirs/
 # Pytorch
 *.pth
 .gitmessage.txt
-.mycommitmsg.txtmodel_zoo
-dev-detection
+.mycommitmsg.txt
