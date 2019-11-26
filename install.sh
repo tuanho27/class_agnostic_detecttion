@@ -2,7 +2,7 @@ rm -rf mmdetection
 git clone https://github.com/open-mmlab/mmdetection.git
 cd mmdetection
 git reset --hard 4d84161f142b7500089b0db001962bbc07aa869d
-pip install -v -e .
+pip install -e .
 
 # Create symbolic link from ccdetection to mmdetection
 cd ..
