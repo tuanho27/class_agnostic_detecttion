@@ -32,7 +32,7 @@ for path in paths:
 
     if not_symlink and (is_none_existed_dir or is_file):
         print(f'copy-to-cc: {path} ')
-        os.system(f'cp -r mmdetection/{path} ccdetection/{path} ')
+        # os.system(f'cp -r mmdetection/{path} ccdetection/{path} ')
 
 ##Step2 remove duplicate file with origin mm
 def is_same_content(a, b):
@@ -54,8 +54,8 @@ for lvl in range(6):
 for cc_file in cc_files:
     origin_mmfile = cc_file.replace('ccdetection/', f'{home}/.origin_mmdetection/')
     if is_same_content(cc_file, origin_mmfile):
-        os.remove(cc_file)
-        print('remove for being duplicate with origin mmdetection:', cc_file)
+        # os.remove(cc_file)
+        print('Remove duplicate:', cc_file)
 
 os.system('rm -rf origin_mmdetection')
 os.remove('_mm_status.txt')
