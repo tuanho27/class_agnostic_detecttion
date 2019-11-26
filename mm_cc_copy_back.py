@@ -1,9 +1,13 @@
 from glob import glob
 import os
-os.remove('_mm_status.txt')
+if os.path.exists('_mm_status.txt'):
+    os.remove('_mm_status.txt')
 os.system('cd mmdetection && echo $(git status) >> ../_mm_status.txt')
 
-assert os.path.exists('origin_mmdetection'), 'make sure you have a copy of mmdetection, take a look at install.sh'
+from os.path import expanduser
+home = expanduser("~")
+
+assert os.path.exists(f'{home}/.origin_mmdetection'), 'make sure you have a copy of mmdetection, take a look at install.sh'
 
 # os.system(
 #     'cp -r mmdetection origin_mmdetection && cd origin_mmdetection && git checkout -- .')
@@ -48,11 +52,12 @@ for lvl in range(6):
 
 
 for cc_file in cc_files:
-    origin_mmfile = cc_file.replace('ccdetection/', 'origin_mmdetection/')
+    origin_mmfile = cc_file.replace('ccdetection/', f'{home}/.origin_mmdetection/')
     if is_same_content(cc_file, origin_mmfile):
         os.remove(cc_file)
         print('remove for being duplicate with origin mmdetection:', cc_file)
 
 os.system('rm -rf origin_mmdetection')
+os.remove('_mm_status.txt')
 
 
