@@ -3,7 +3,7 @@ import os
 os.remove('_mm_status.txt')
 os.system('cd mmdetection && echo $(git status) >> ../_mm_status.txt')
 
-assert os.path.exists('origin_mmdetection')
+assert os.path.exists('origin_mmdetection'), 'make sure you have a copy of mmdetection, take a look at install.sh'
 
 # os.system(
 #     'cp -r mmdetection origin_mmdetection && cd origin_mmdetection && git checkout -- .')
