@@ -15,35 +15,39 @@ from mmdet.models.backbones import timm_channel_pyramid
 
 
 
-# fp16 = dict(loss_scale=512.)
+fp16 = dict(loss_scale=512.)
 # debug
-debug=True
+debug=False
 num_samples = None
+imgs_per_gpu = 16
 workers_per_gpu = 2
 if debug:
-    num_samples = 200
-    workers_per_gpu = 1
-# fp16 settings
+	num_samples = 200
+	workers_per_gpu = 1
+	imgs_per_gpu = 1
 
+# fp16 settings
 lr_start = 1e-2
 lr_end = 1e-4
-imgs_per_gpu = 2
 total_epochs = 12
-data_root= ''
+data_root= 'dataset-coco/'
 work_dir = '/set/by/work_dir/in/command_train/command_test'
 load_from = None #or '/set/by/load_from/in/command_train/command_test'
 resume_from = None #or '/set/by/resume_from/in/command_train/command_test'
 wh_ratio=1333/800
+
+
+
 EfficientDetConfig ={
 	'D0': dict(Backbone='efficientnet_b0',ImgSize=(896, 512),  fpn_channel=64, fpn_stack=2,head_depth=3),
 	'D1': dict(Backbone='efficientnet_b1',ImgSize=(1024, 640),  fpn_channel=88, fpn_stack=3,head_depth=3),
-	'D2': dict(Backbone='efficientnet_b2',ImgSize=(1280, 768),  fpn_channel=112,fpn_stack=4,head_depth=3),
+	'D2': dict(Backbone='efficientnet_b2',ImgSize=(1280//2, 768//2),  fpn_channel=112,fpn_stack=4,head_depth=3),
 	'D3': dict(Backbone='efficientnet_b3',ImgSize=(1408, 896),  fpn_channel=160,fpn_stack=5,head_depth=4),
 	'D4': dict(Backbone='efficientnet_b4',ImgSize=(1024*wh_ratio, 1024),fpn_channel=224,fpn_stack=6,head_depth=4),
 	'D5': dict(Backbone='efficientnet_b5',ImgSize=(1280*wh_ratio, 1280),fpn_channel=288,fpn_stack=7,head_depth=4),
 	'D6': dict(Backbone='efficientnet_b6',ImgSize=(1408*wh_ratio, 1408),fpn_channel=384,fpn_stack=8,head_depth=5),
 }
-model_cfg=EfficientDetConfig['D0']
+model_cfg=EfficientDetConfig['D2']
 # model settings
 model = dict(
 	type='RetinaMask',
