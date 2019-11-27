@@ -81,8 +81,9 @@ EfficientDetConfig ={
 	'D5': dict(Backbone='efficientnet_b5',ImgSize=(1280*wh_ratio, 1280),fpn_channel=288,fpn_stack=7,head_depth=4),
 	'D6': dict(Backbone='efficientnet_b6',ImgSize=(1408*wh_ratio, 1408),fpn_channel=384,fpn_stack=8,head_depth=5),
 }
-model_cfg=EfficientDetConfig['D0']
+model_cfg=EfficientDetConfig['D2']
 # model settings
+# import ipdb; ipdb.set_trace()
 model = dict(
 	type='RetinaNet',
     backbone=dict(
@@ -91,7 +92,7 @@ model = dict(
         drop_rate=0.1,
         norm_eval=True,
         pretrained=False, 
-		block_type='idle',
+		# block_type='idle',
 		),
 	neck=dict(
 		type='StackBiFPN',
@@ -103,11 +104,18 @@ model = dict(
 		fpn_conv_groups=model_cfg['fpn_channel'], #Use DepthWise
 		add_extra_convs=True,
 	),
+    # neck=dict(
+    #     type='FPN',
+    #     in_channels=timm_channel_pyramid[model_cfg['Backbone']],
+    #     out_channels=model_cfg['fpn_channel'],
+    #     start_level=1,
+    #     add_extra_convs=True,
+    #     num_outs=5),
 
     bbox_head=dict(
         type='RetinaHead',
         num_classes=81,
-        in_channels=256,
+        in_channels=model_cfg['fpn_channel'],
         stacked_convs=4,
         feat_channels=256,
         octave_base_scale=4,
@@ -151,7 +159,7 @@ train_pipeline = [
     dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
-    dict(type='Pad', size_divisor=32),
+    dict(type='Pad', size_divisor=128),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
@@ -165,7 +173,7 @@ test_pipeline = [
             dict(type='Resize', keep_ratio=True),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
-            dict(type='Pad', size_divisor=32),
+            dict(type='Pad', size_divisor=128),
             dict(type='ImageToTensor', keys=['img']),
             dict(type='Collect', keys=['img']),
         ])
