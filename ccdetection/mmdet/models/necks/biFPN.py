@@ -175,7 +175,7 @@ class StackBiFPN(nn.Module):
                                 conv_cfg,
                                 norm_cfg,
                                 activation) ]*fpn_stack)
-    # default init_weights for conv(msra) and norm in ConvModule
+                                
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
