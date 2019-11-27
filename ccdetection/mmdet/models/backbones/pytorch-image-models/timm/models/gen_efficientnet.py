@@ -255,6 +255,19 @@ def _decode_block_str(block_str, depth_multiplier=1.0):
             act_fn=act_fn,
             noskip=noskip,
         )
+    elif block_type == 'idle':
+        block_args = dict(
+            block_type=block_type,
+            dw_kernel_size=_parse_ksize(options['k']),
+            exp_kernel_size=exp_kernel_size,
+            pw_kernel_size=pw_kernel_size,
+            out_chs=int(options['c']),
+            exp_ratio=float(options['e']),
+            se_ratio=float(options['se']) if 'se' in options else None,
+            stride=int(options['s']),
+            act_fn=act_fn,
+            noskip=noskip,
+        )
     elif block_type == 'ds' or block_type == 'dsa':
         block_args = dict(
             block_type=block_type,
@@ -368,6 +381,14 @@ class _BlockBuilder:
             if self.verbose:
                 logging.info('  InvertedResidual {}, Args: {}'.format(self.block_idx, str(ba)))
             block = InvertedResidual(**ba)
+        if bt == 'idle':
+            ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
+            ba['se_gate_fn'] = self.se_gate_fn
+            ba['se_reduce_mid'] = self.se_reduce_mid
+            if self.verbose:
+                logging.info('  InvertedResidual {}, Args: {}'.format(self.block_idx, str(ba)))
+            block = Idle(**ba)
+
         elif bt == 'ds' or bt == 'dsa':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             if self.verbose:
@@ -643,6 +664,82 @@ class InvertedResidual(nn.Module):
         # NOTE maskrcnn_benchmark building blocks have an SE module defined here for some variants
 
         return x
+
+
+
+
+class IdleBlock(nn.Module):
+    """ Idle block """
+
+    def __init__(self, in_chs, out_chs, dw_kernel_size=3,
+                 stride=1, pad_type='', act_fn=F.relu, noskip=False,
+                 exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
+                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid, bn_args=_BN_ARGS_PT, drop_connect_rate=0., alpha=.5):
+
+        super(IdleBlock, self).__init__()
+        self.in_chs_transformed_branch = int(in_chs*(1-alpha))
+        self.in_chs_nonetransformed_branch = in_chs - self.in_chs_transformed_branch
+        mid_chs = int(self.in_chs_transformed_branch * exp_ratio)
+        self.has_se = se_ratio is not None and se_ratio > 0.
+        self.has_residual = (self.in_chs_transformed_branch == out_chs and stride == 1) and not noskip
+        self.act_fn = act_fn
+        self.drop_connect_rate = drop_connect_rate
+
+        # Point-wise expansion
+        self.conv_pw = select_conv2d(self.in_chs_transformed_branch, mid_chs, exp_kernel_size, padding=pad_type)
+        self.bn1 = nn.BatchNorm2d(mid_chs, **bn_args)
+
+
+        # Depth-wise convolution
+        self.conv_dw = select_conv2d(
+            mid_chs, mid_chs, dw_kernel_size, stride=stride, padding=pad_type, depthwise=True)
+        self.bn2 = nn.BatchNorm2d(mid_chs, **bn_args)
+
+        # Squeeze-and-excitation
+        if self.has_se:
+            se_base_chs = mid_chs if se_reduce_mid else self.in_chs_transformed_branch
+            self.se = SqueezeExcite(
+                mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_fn=act_fn, gate_fn=se_gate_fn)
+
+        # Point-wise linear projection
+        self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, padding=pad_type)
+        self.bn3 = nn.BatchNorm2d(out_chs, **bn_args)
+
+    def forward(self, x):
+        x_transformed_branch = x[:,:self.in_chs_transformed_branch]
+        x_none_transformed_branch = x[:,self.in_chs_transformed_branch:]
+        residual = x_transformed_branch
+
+        # Point-wise expansion
+        x_transformed_branch =  self.conv_pw(x_transformed_branch)
+        x_transformed_branch =  self.bn1(x_transformed_branch)
+        x_transformed_branch =  self.act_fn(x_transformed_branch, inplace=True)
+
+
+        # Depth-wise convolution
+        x_transformed_branch =  self.conv_dw(x_transformed_branch)
+        x_transformed_branch =  self.bn2(x_transformed_branch)
+        x_transformed_branch =  self.act_fn(x_transformed_branch, inplace=True)
+
+        # Squeeze-and-excitation
+        if self.has_se:
+            x_transformed_branch =  self.se(x_transformed_branch)
+
+        # Point-wise linear projection
+        x_transformed_branch =  self.conv_pwl(x_transformed_branch)
+        x_transformed_branch =  self.bn3(x_transformed_branch)
+
+        if self.has_residual:
+            if self.drop_connect_rate > 0.:
+                x_transformed_branch =  drop_connect(x_transformed_branch, self.training, self.drop_connect_rate)
+            x_transformed_branch += residual
+
+        x = torch.concat([x_none_transformed_branch, x_transformed_branch], axis=1)
+
+        return x
+
+
+
 
 
 class GenEfficientNet(nn.Module):
