@@ -67,7 +67,7 @@ if debug:
 # fp16 settings
 
 data_root= 'dataset-coco/'
-work_dir = 'work_dirs/retinanet_efficient_idleblock'
+work_dir = './work_dirs/retinanet_efficient_idleblock'
 load_from = None #or '/set/by/load_from/in/command_train/command_test'
 resume_from = None #or '/set/by/resume_from/in/command_train/command_test'
 wh_ratio=1333/800
