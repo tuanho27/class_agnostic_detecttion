@@ -3,7 +3,7 @@
 fp16 = dict(loss_scale=512.)
 
 
-debug = True
+debug = False
 lr_config = dict(
     policy='step',
     warmup='constant',
@@ -39,8 +39,8 @@ imgs_per_gpu = 12
 if debug:
     imgs_per_gpu=1
     # work_dir += '/debug'
-    total_epochs = 501
-    checkpoint_config = dict(interval=100)
+    total_epochs = 12
+    checkpoint_config = dict(interval=1)
     num_samples = 1
     workers_per_gpu = 1
     imgs_per_gpu = 1
@@ -59,7 +59,7 @@ if debug:
         warmup='constant',
         warmup_iters=500,
         warmup_ratio=1.0 / 3,
-        step=[total_epochs-50])
+        step=[20, 30])
 
 # model settings
 model = dict(
