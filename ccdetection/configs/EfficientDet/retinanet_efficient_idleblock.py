@@ -13,13 +13,13 @@ from mmdet.models.backbones import timm_channel_pyramid
 # 'mixnet_l':[40,56,160,264],
 # """
 
-debug=True
+debug = False
 
 
 fp16 = dict(loss_scale=512.)
 # debug
 num_samples = None
-imgs_per_gpu = 48
+imgs_per_gpu = 24
 workers_per_gpu = 4
 
 checkpoint_config = dict(interval=1)
@@ -38,12 +38,13 @@ optimizer = dict(type='SGD', lr=lr_start, momentum=0.9, weight_decay=1e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 
+# learning policy
 lr_config = dict(
-	# policy='step', step=[8, 11],
-	policy='cosine', target_lr=lr_end, by_epoch=False,
-	warmup='linear', warmup_iters=500, warmup_ratio=1.0/3,
-)
-
+    policy='step',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=1.0 / 3,
+    step=[8, 11])
 
 if debug:
     num_samples = 20
@@ -92,14 +93,16 @@ model = dict(
         pretrained=False, 
 		block_type='idle',
 		),
-    neck=dict(
-        type='FPN',
-        in_channels=timm_channel_pyramid[model_cfg['Backbone']],
-        out_channels=256,
-        start_level=1,
-        add_extra_convs=True,
-        num_outs=5
-        ),
+	neck=dict(
+		type='StackBiFPN',
+		in_channels=timm_channel_pyramid[model_cfg['Backbone']],
+		out_channels=model_cfg['fpn_channel'],
+		start_level=1,
+		num_outs=5,
+		fpn_stack=model_cfg['fpn_stack'],
+		fpn_conv_groups=model_cfg['fpn_channel'], #Use DepthWise
+		add_extra_convs=True,
+	),
 
     bbox_head=dict(
         type='RetinaHead',
@@ -134,9 +137,9 @@ train_cfg = dict(
     debug=False)
 test_cfg = dict(
     nms_pre=1000,
-    min_bbox_size=10,
-    score_thr=0.5,
-    nms=dict(type='nms', iou_thr=0.7),
+    min_bbox_size=0,
+    score_thr=0.05,
+    nms=dict(type='nms', iou_thr=0.5),
     max_per_img=100)
 # dataset settings
 dataset_type = 'CocoDataset'

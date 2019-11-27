@@ -15,44 +15,25 @@ from mmdet.models.backbones import timm_channel_pyramid
 
 
 
-fp16 = dict(loss_scale=512.)
+# fp16 = dict(loss_scale=512.)
 # debug
-debug=False
+debug=True
 num_samples = None
-imgs_per_gpu = 48
-workers_per_gpu = 4
-
-checkpoint_config = dict(interval=1)
-# yapf:disable
-log_config = dict(
-	interval=10,
-	hooks=[
-		dict(type='TextLoggerHook'),
-	])
-total_epochs = 12
-
+workers_per_gpu = 2
 if debug:
-	num_samples = 200
-	total_epochs = 120
-	imgs_per_gpu = 48 
-	checkpoint_config = dict(interval=10)
-	log_config = dict(
-		interval=5,
-		hooks=[
-			dict(type='TextLoggerHook'),
-		]
-	)
-
-
+    num_samples = 200
+    workers_per_gpu = 1
 # fp16 settings
+
 lr_start = 1e-2
 lr_end = 1e-4
-data_root= 'dataset-coco/'
-work_dir = 'work_dirs/retinamask_efficientdet.py'
+imgs_per_gpu = 2
+total_epochs = 12
+data_root= '/set/by/data_root/in/command_train/command_test'
+work_dir = '/set/by/work_dir/in/command_train/command_test'
 load_from = None #or '/set/by/load_from/in/command_train/command_test'
 resume_from = None #or '/set/by/resume_from/in/command_train/command_test'
 wh_ratio=1333/800
-
 EfficientDetConfig ={
 	'D0': dict(Backbone='efficientnet_b0',ImgSize=(896, 512),  fpn_channel=64, fpn_stack=2,head_depth=3),
 	'D1': dict(Backbone='efficientnet_b1',ImgSize=(1024, 640),  fpn_channel=88, fpn_stack=3,head_depth=3),
@@ -62,7 +43,7 @@ EfficientDetConfig ={
 	'D5': dict(Backbone='efficientnet_b5',ImgSize=(1280*wh_ratio, 1280),fpn_channel=288,fpn_stack=7,head_depth=4),
 	'D6': dict(Backbone='efficientnet_b6',ImgSize=(1408*wh_ratio, 1408),fpn_channel=384,fpn_stack=8,head_depth=5),
 }
-model_cfg=EfficientDetConfig['D2']
+model_cfg=EfficientDetConfig['D0']
 # model settings
 model = dict(
 	type='RetinaMask',
@@ -126,17 +107,17 @@ train_cfg = dict(
 	allowed_border=-1,
 	pos_weight=-1,
 	rpn_proposal=dict(
-		nms_pre=512,
-		min_bbox_size=10,
-		score_thr=0.5,
+		nms_pre=1000,
+		min_bbox_size=0,
+		score_thr=0.0,
 		nms=dict(type='nms', iou_thr=0.7),
-		max_per_img=100
+		max_per_img=1000
 	),
 	rcnn=dict(
 		assigner=dict(
 			type='MaxIoUAssigner',
 			pos_iou_thr=0.5,
-			neg_iou_thr=0.4,
+			neg_iou_thr=0.5,
 			min_pos_iou=0.5,
 			ignore_iof_thr=-1,
 		),
@@ -159,11 +140,6 @@ test_cfg = dict(
 	nms=dict(type='nms', iou_thr=0.5),
 	max_per_img=100,
 	mask_thr_binary=0.5,
-    rcnn=dict(
-        score_thr=0.05,
-        nms=dict(type='nms', iou_thr=0.5),
-        max_per_img=100,
-        mask_thr_binary=0.5)
 )
 # dataset settings
 dataset_type = 'CocoDataset'
@@ -188,7 +164,7 @@ test_pipeline = [
 			dict(type='Resize', keep_ratio=True),
 			dict(type='RandomFlip'),
 			dict(type='Normalize', **img_norm_cfg),
-			dict(type='Pad', size_divisor=128),
+			dict(type='Pad', size_divisor=32),
 			dict(type='ImageToTensor', keys=['img']),
 			dict(type='Collect', keys=['img']),
 		])
@@ -198,8 +174,8 @@ data = dict(
     workers_per_gpu=workers_per_gpu,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_{}2017.json'.format('val' if debug else 'train'),
-        img_prefix=data_root + 'images/{}2017/'.format('val' if debug else 'train'),
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'images/train2017/',
         pipeline=train_pipeline, num_samples=num_samples),
     val=dict(
         type=dataset_type,
@@ -220,7 +196,14 @@ lr_config = dict(
 	policy='cosine', target_lr=lr_end, by_epoch=False,
 	warmup='linear', warmup_iters=500, warmup_ratio=1.0/3,
 )
-
+checkpoint_config = dict(interval=1)
+# yapf:disable
+log_config = dict(
+	interval=20,
+	hooks=[
+		dict(type='TextLoggerHook'),
+		# dict(type='TensorboardLoggerHook')
+	])
 # yapf:enable
 # runtime settings
 dist_params = dict(backend='nccl')
