@@ -17,7 +17,7 @@ from mmdet.models.backbones import timm_channel_pyramid
 
 fp16 = dict(loss_scale=512.)
 # debug
-debug=False
+debug=True
 num_samples = None
 imgs_per_gpu = 48
 workers_per_gpu = 4
@@ -34,7 +34,7 @@ total_epochs = 12
 if debug:
 	num_samples = 200
 	total_epochs = 120
-	imgs_per_gpu = 48 
+	imgs_per_gpu = 4 
 	checkpoint_config = dict(interval=10)
 	log_config = dict(
 		interval=5,
@@ -71,7 +71,9 @@ model = dict(
         model_name=model_cfg['Backbone'],
         drop_rate=0.1,
         norm_eval=True,
-        pretrained=True),
+        pretrained=False, 
+		block_type='idle',
+		),
 	neck=dict(
 		type='StackBiFPN',
 		in_channels=timm_channel_pyramid[model_cfg['Backbone']],

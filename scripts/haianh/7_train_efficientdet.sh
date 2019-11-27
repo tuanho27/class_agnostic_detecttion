@@ -1,4 +1,4 @@
-CONFIG_FILE='ccdetection/configs/EfficientDet/retinamask_efficientdet.py'
+CONFIG_FILE='ccdetection/configs/EfficientDet/retinanet_efficient_idleblock.py'
 GPUS=2
 SEED=0
 

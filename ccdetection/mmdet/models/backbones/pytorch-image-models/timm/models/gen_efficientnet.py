@@ -380,14 +380,17 @@ class _BlockBuilder:
             ba['se_reduce_mid'] = self.se_reduce_mid
             if self.verbose:
                 logging.info('  InvertedResidual {}, Args: {}'.format(self.block_idx, str(ba)))
+
+
             block = InvertedResidual(**ba)
-        if bt == 'idle':
+        elif bt == 'idle':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             ba['se_gate_fn'] = self.se_gate_fn
             ba['se_reduce_mid'] = self.se_reduce_mid
             if self.verbose:
                 logging.info('  InvertedResidual {}, Args: {}'.format(self.block_idx, str(ba)))
-            block = Idle(**ba)
+            # import ipdb; ipdb.set_trace()            
+            block = IdleBlock(**ba)
 
         elif bt == 'ds' or bt == 'dsa':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
@@ -662,7 +665,6 @@ class InvertedResidual(nn.Module):
             x += residual
 
         # NOTE maskrcnn_benchmark building blocks have an SE module defined here for some variants
-
         return x
 
 
@@ -675,13 +677,16 @@ class IdleBlock(nn.Module):
                  stride=1, pad_type='', act_fn=F.relu, noskip=False,
                  exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
                  se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid, bn_args=_BN_ARGS_PT, drop_connect_rate=0., alpha=.5):
-
         super(IdleBlock, self).__init__()
         self.in_chs_transformed_branch = int(in_chs*(1-alpha))
         self.in_chs_nonetransformed_branch = in_chs - self.in_chs_transformed_branch
+        self.out_chs_transformed_branch = out_chs - self.in_chs_nonetransformed_branch  
+        if stride == 2:
+            self.max_pool = torch.nn.MaxPool2d(2,2)
         mid_chs = int(self.in_chs_transformed_branch * exp_ratio)
+
         self.has_se = se_ratio is not None and se_ratio > 0.
-        self.has_residual = (self.in_chs_transformed_branch == out_chs and stride == 1) and not noskip
+        self.has_residual = (self.in_chs_transformed_branch == self.out_chs_transformed_branch and stride == 1) and not noskip
         self.act_fn = act_fn
         self.drop_connect_rate = drop_connect_rate
 
@@ -702,8 +707,8 @@ class IdleBlock(nn.Module):
                 mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_fn=act_fn, gate_fn=se_gate_fn)
 
         # Point-wise linear projection
-        self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, padding=pad_type)
-        self.bn3 = nn.BatchNorm2d(out_chs, **bn_args)
+        self.conv_pwl = select_conv2d(mid_chs, self.out_chs_transformed_branch, pw_kernel_size, padding=pad_type)
+        self.bn3 = nn.BatchNorm2d(self.out_chs_transformed_branch, **bn_args)
 
     def forward(self, x):
         x_transformed_branch = x[:,:self.in_chs_transformed_branch]
@@ -733,10 +738,12 @@ class IdleBlock(nn.Module):
             if self.drop_connect_rate > 0.:
                 x_transformed_branch =  drop_connect(x_transformed_branch, self.training, self.drop_connect_rate)
             x_transformed_branch += residual
+        
+        if hasattr(self, 'max_pool'):
+            x_none_transformed_branch = self.max_pool(x_none_transformed_branch)
+        out = torch.cat([x_none_transformed_branch, x_transformed_branch], 1)
 
-        x = torch.concat([x_none_transformed_branch, x_transformed_branch], axis=1)
-
-        return x
+        return out
 
 
 
@@ -761,7 +768,17 @@ class GenEfficientNet(nn.Module):
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  pad_type='', act_fn=F.relu, drop_rate=0., drop_connect_rate=0.,
                  se_gate_fn=sigmoid, se_reduce_mid=False, bn_args=_BN_ARGS_PT,
-                 global_pool='avg', head_conv='default', weight_init='goog'):
+                 global_pool='avg', head_conv='default', weight_init='goog', block_type='ir'):
+        
+        
+        if block_type != 'ir': 
+            for i_list, list_block_arg in enumerate(block_args):
+                for i, block_arg in enumerate(list_block_arg):
+                    # print(['Change:', block_type])
+                    if block_arg['block_type'] == 'ir':# and block_arg['stride'] == 1:
+                        block_arg['block_type'] = block_type 
+                        block_args[i_list][i] = block_arg
+
         super(GenEfficientNet, self).__init__()
         self.num_classes = num_classes
         self.drop_rate = drop_rate
@@ -866,6 +883,7 @@ def _gen_mnasnet_a1(channel_multiplier, num_classes=1000, **kwargs):
     Args:
       channel_multiplier: multiplier to number of channels per layer.
     """
+    import ipdb; ipdb.set_trace()
     arch_def = [
         # stage 0, 112x112 in
         ['ds_r1_k3_s1_e1_c16_noskip'],

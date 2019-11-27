@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-CONFIG_FILE='ccdetection/configs/EfficientDet/retinamask_efficientdet.py'
+CONFIG_FILE='ccdetection/configs/EfficientDet/retinanet_efficient_idleblock.py'
 
-WORK_DIR="work_dirs/retinamask_efficientdet"
+WORK_DIR="work_dirs/retinanet_efficient_idleblock"
 th='latest'
 
 CHECKPOINT_FILE="${WORK_DIR}/${th}.pth"
@@ -14,4 +14,4 @@ PYTHON=${PYTHON:-"python"}
 
 # $PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
 	# tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
-python mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE}  --out ${RESULT_FILE} --eval bbox 
+python mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE}  --out ${RESULT_FILE} --show
