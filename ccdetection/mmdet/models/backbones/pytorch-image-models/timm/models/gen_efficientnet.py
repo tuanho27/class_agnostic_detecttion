@@ -681,8 +681,8 @@ class IdleBlock(nn.Module):
         self.in_chs_transformed_branch = int(in_chs*(1-alpha))
         self.in_chs_nonetransformed_branch = in_chs - self.in_chs_transformed_branch
         self.out_chs_transformed_branch = out_chs - self.in_chs_nonetransformed_branch  
-        if stride == 2:
-            self.max_pool = torch.nn.MaxPool2d(2,2)
+        if stride != 1:
+            self.max_pool = torch.nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         mid_chs = int(self.in_chs_transformed_branch * exp_ratio)
 
         self.has_se = se_ratio is not None and se_ratio > 0.
@@ -769,7 +769,6 @@ class GenEfficientNet(nn.Module):
                  pad_type='', act_fn=F.relu, drop_rate=0., drop_connect_rate=0.,
                  se_gate_fn=sigmoid, se_reduce_mid=False, bn_args=_BN_ARGS_PT,
                  global_pool='avg', head_conv='default', weight_init='goog', block_type='ir'):
-        
         
         if block_type != 'ir': 
             for i_list, list_block_arg in enumerate(block_args):
@@ -1847,6 +1846,21 @@ def tf_mixnet_l(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
         load_pretrained(model, default_cfg, num_classes, in_chans)
     return model
 
+
+@register_model
+def efficientnet_b2_idle(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
+    """ EfficientNet-B2 IDLE"""
+    default_cfg = default_cfgs['efficientnet_b2']
+    # NOTE for train, drop_rate should be 0.3
+    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    kwargs['block_type'] = 'idle'
+    model = _gen_efficientnet(
+        channel_multiplier=1.1, depth_multiplier=1.2,
+        num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model.default_cfg = default_cfg
+    if pretrained:
+        load_pretrained(model, default_cfg, num_classes, in_chans)
+    return model
 
 def gen_efficientnet_model_names():
     return set(_models)
