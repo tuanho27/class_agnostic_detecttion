@@ -3,7 +3,7 @@
 fp16 = dict(loss_scale=512.)
 
 
-debug = False
+debug = True
 lr_config = dict(
     policy='step',
     warmup='constant',
@@ -28,7 +28,7 @@ work_dir = './work_dirs/fcos_mask_r50_fp16'
 load_from = None
 # resume_from = 'model_zoo/fcos_r50_caffe_fpn_1x_4gpu_20190516-a7cac5ff.pth'
 # resume_from = 'model_zoo/fcos_mstrain_640_800_r50_caffe_fpn_gn_2x_4gpu_20190516-f7329d80.pth'
-resume_from = f'{work_dir}/latest.pth'
+resume_from = None#f'{work_dir}/latest.pth'
 workflow = [('train', 1)]
 num_samples = None
 

@@ -694,7 +694,7 @@ class GenEfficientNet(nn.Module):
 
         self.global_pool = SelectAdaptivePool2d(pool_type=global_pool)
         self.classifier = nn.Linear(self.num_features * self.global_pool.feat_mult(), self.num_classes)
-
+        # init weight
         for m in self.modules():
             if weight_init == 'goog':
                 _initialize_weight_goog(m)

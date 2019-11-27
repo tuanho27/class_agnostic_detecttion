@@ -100,6 +100,7 @@ class BaseDetector(nn.Module):
         assert imgs_per_gpu == 1
 
         if num_augs == 1:
+            # import ipdb; ipdb.set_trace()
             return self.simple_test(imgs[0], img_metas[0], **kwargs)
         else:
             return self.aug_test(imgs, img_metas, **kwargs)

@@ -72,22 +72,18 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
             x = self.neck(x)
         return x
 
-    def forward_dummy(self, img):
+    def forward_dummy(self, img, mask_size=[100, 256, 14, 14]):
         """Used for computing network flops.
 
         See `mmedetection/tools/get_flops.py`
         """
+        """Batchsize must be 1!
+        """
+        # BBox
         x = self.extract_feat(img)
         outs = self.bbox_head(x)
-        
-        proposals=outs
-        rois = bbox2roi([proposals])
-        mask_rois = rois[:100]
-        mask_feats = self.mask_roi_extractor(
-            x[:self.mask_roi_extractor.num_inputs], mask_rois)
-        
-        mask_pred = self.mask_head(mask_feats)
-        outs = outs + (mask_pred, )
+        mask_feats = torch.randn(*mask_size).cuda()
+        outs_mask = self.mask_head(mask_feats)
         return outs
 
     def forward_train(self,
@@ -171,7 +167,6 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
 
         bbox_results = []
-        # import ipdb; ipdb.set_trace()
         for det_bboxes, det_labels in bbox_list:
             bb_result = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
             bbox_results.append(bb_result)
@@ -206,6 +201,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                 x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
             if self.with_shared_head:
                 mask_feats = self.shared_head(mask_feats)
+            # import ipdb; ipdb.set_trace()
             mask_pred = self.mask_head(mask_feats)
             segm_result = self.mask_head.get_seg_masks(mask_pred, _bboxes,
                                                        det_labels,
