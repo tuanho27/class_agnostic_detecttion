@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-CONFIG_FILE='configs/fcos_mask/fcos_mask_r50_fp16.py'
+CONFIG_FILE='ccdetection/configs/fcos_mask/fcos_mask_r50_fp16.py'
 
 WORK_DIR="work_dirs/fcos_mask_r50_fp16"
 th=100
@@ -15,5 +15,7 @@ CUDA_VISIBLE_DEVICES=0,1
 PYTHON=${PYTHON:-"python"}
 
 $PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
-	tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
+	ccdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
+
 # python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE}  --out ${RESULT_FILE} --eval bbox segm
+
