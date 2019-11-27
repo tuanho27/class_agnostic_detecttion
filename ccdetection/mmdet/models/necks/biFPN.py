@@ -203,6 +203,7 @@ class StackBiFPN(nn.Module):
             for extra_conv in self.extra_convs:
                 in_feature = extra_conv(in_feature)
                 P_out.append(in_feature)
+        
 
         for m in self.stack_bifpn:
             P_out = m(P_out)

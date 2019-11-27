@@ -159,6 +159,11 @@ test_cfg = dict(
 	nms=dict(type='nms', iou_thr=0.5),
 	max_per_img=100,
 	mask_thr_binary=0.5,
+    rcnn=dict(
+        score_thr=0.05,
+        nms=dict(type='nms', iou_thr=0.5),
+        max_per_img=100,
+        mask_thr_binary=0.5)
 )
 # dataset settings
 dataset_type = 'CocoDataset'
@@ -183,7 +188,7 @@ test_pipeline = [
 			dict(type='Resize', keep_ratio=True),
 			dict(type='RandomFlip'),
 			dict(type='Normalize', **img_norm_cfg),
-			dict(type='Pad', size_divisor=32),
+			dict(type='Pad', size_divisor=128),
 			dict(type='ImageToTensor', keys=['img']),
 			dict(type='Collect', keys=['img']),
 		])
