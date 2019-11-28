@@ -1,7 +1,4 @@
 cd ccdetection/mmdet/models/backbones/pytorch-image-models
-
-# ./distributed_train.sh 4 /computer/member/Workspace/dataset/ImageNet --model efficienet_b2_ --sched cosine --epochs 150 --warmup-epochs 5 --lr 0.4 --reprob 0.5 --remode pixel --batch-size 256 -j 4
-./distributed_train.sh 4 /computer/member/Workspace/dataset/ImageNet --model efficientnet_b2_idle --sched cosine --epochs 300 --warmup-epochs 5 --lr 0.2 --reprob 0.5 --remode pixel --batch-size 128 -j 4
-
-
-python validate.py /computer/member/Workspace/dataset/ImageNet --model efficientnet_b2_idle --checkpoint output/train/20191127-100922-efficientnet_b2_idle-260/checkpoint-285.pth.tar
+model=efficientnet_b0_idle
+./distributed_train.sh 4 /computer/member/Workspace/dataset/ImageNet/ --model $model  -b 256 --sched step --epochs 500 --decay-epochs 3 --decay-rate 0.963 --opt rmsproptf --opt-eps .001 -j 8 --warmup-epochs 5 --weight-decay 1e-5 --drop 0.2 --color-jitter .06 --model-ema --lr .128 --img_size 320
+# python validate.py /computer/member/Workspace/dataset/ImageNet --model model --checkpoint output/train/20191127-100922-efficientnet_b2_idle-260/checkpoint-285.pth.tar
