@@ -1,9 +1,9 @@
+debug = False
 
 # fp16 settings
 fp16 = dict(loss_scale=512.)
 
 
-debug = False
 lr_config = dict(
     policy='step',
     warmup='constant',
@@ -35,6 +35,7 @@ train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
 roi_out_size = 14
 imgs_per_gpu = 12
+pretrained = None
 if debug:
     imgs_per_gpu=1
     total_epochs = 12
@@ -62,15 +63,13 @@ if debug:
 # model settings
 model = dict(
     type='FCOSMask',
-    pretrained='open-mmlab://resnet50_caffe',
+    pretrained=pretrained,
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
-        norm_cfg=dict(type='BN', requires_grad=False),
-        style='caffe'),
+        type='TimmCollection',
+        model_name=model_cfg['Backbone'],
+        drop_rate=0.1,
+        norm_eval=True,
+        pretrained=True),
     neck=dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
