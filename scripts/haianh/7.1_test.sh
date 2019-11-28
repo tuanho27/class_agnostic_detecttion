@@ -12,6 +12,6 @@ GPUS=2
 CUDA_VISIBLE_DEVICES=0,1
 PYTHON=${PYTHON:-"python"}
 
-# $PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
-	# tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
-python mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE}  --out ${RESULT_FILE} --show
+$PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
+	mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} --launcher pytorch --out ${RESULT_FILE} --eval bbox segm
+# python mmdetection/tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE}  --out ${RESULT_FILE} --show
