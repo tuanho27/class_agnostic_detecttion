@@ -107,6 +107,7 @@ class StackBiFPN(nn.Module):
                  conv_cfg=None,
                  norm_cfg=None,
                  activation=None):
+                 
         super(StackBiFPN, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
