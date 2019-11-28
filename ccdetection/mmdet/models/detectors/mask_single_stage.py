@@ -39,7 +39,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         self.mask_roi_extractor = builder.build_roi_extractor(mask_roi_extractor)
         self.mask_head = builder.build_head(mask_head)
         
-        if not 'train_mask' in train_cfg:
+        if (train_cfg is not None) and  (not 'train_mask' in train_cfg):
             train_cfg['train_mask'] = True
 
         self.train_cfg = train_cfg

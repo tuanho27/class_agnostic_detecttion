@@ -13,7 +13,7 @@ from mmdet.models.backbones import timm_channel_pyramid
 # 'mixnet_l':[40,56,160,264],
 # """
 
-debug = False
+debug = True
 
 
 fp16 = dict(loss_scale=512.)

@@ -9,7 +9,7 @@ lr_config = dict(
     warmup='constant',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[20, 30])
+    step=[25, 26])
 data_root = 'dataset-coco/'
 checkpoint_config = dict(interval=1)
 # yapf:disable
@@ -20,21 +20,23 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 50
+total_epochs = 27
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/fcos_mask_r50_fp16'
 load_from = None
+train_mask=False
 # resume_from = 'model_zoo/fcos_r50_caffe_fpn_1x_4gpu_20190516-a7cac5ff.pth'
 # resume_from = 'model_zoo/fcos_mstrain_640_800_r50_caffe_fpn_gn_2x_4gpu_20190516-f7329d80.pth'
-resume_from = None#f'{work_dir}/latest.pth'
+# resume_from = 'model_zoo/fcos_r50_caffe_fpn_gn_2x_4gpu_20190516_-93484354.pth'
+resume_from = 'work_dirs/fcos_mask_r50_fp16/epoch_25.pth'
 workflow = [('train', 1)]
 num_samples = None
 
 train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
 roi_out_size = 14
-imgs_per_gpu = 12
+imgs_per_gpu = 32
 if debug:
     imgs_per_gpu=1
     total_epochs = 12
@@ -68,7 +70,7 @@ model = dict(
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
+        frozen_stages=4,
         norm_cfg=dict(type='BN', requires_grad=False),
         style='caffe'),
     neck=dict(
@@ -80,6 +82,7 @@ model = dict(
         extra_convs_on_inputs=False,  # use P5
         num_outs=5,
         relu_before_extra_convs=True),
+
     bbox_head=dict(
         type='FCOSHead',
         num_classes=81,
@@ -120,6 +123,7 @@ model = dict(
 
 # training and testing settings
 train_cfg = dict(
+    train_mask=train_mask,
     assigner=dict(
         type='MaxIoUAssigner',
         pos_iou_thr=0.5,
@@ -175,7 +179,7 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=train_mask),
     dict(
         type='Resize',
         img_scale=[(1333, 640), (1333, 800)],
@@ -185,7 +189,7 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'] + ['gt_masks']*int(train_mask)),
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),

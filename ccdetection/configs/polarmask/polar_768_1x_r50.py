@@ -3,22 +3,13 @@ data_root = './datasets/coco/'
 # model settings
 model = dict(
     type='PolarMask',
-    #pretrained='open-mmlab://resnet50_caffe',
-    #backbone=dict(
-    #    type='ResNet',
-    #    depth=50,
-    #    num_stages=4,
-    #    out_indices=(0, 1, 2, 3),
-    #    frozen_stages=1,
-    #    norm_cfg=dict(type='BN', requires_grad=False),
-    #    style='caffe'),
     pretrained=None,
     backbone=dict(
         type='TimmCollection',
         model_name='efficientnet_b1',
         ),
     neck=dict(
-        type='FPN',
+        type='StackBiFPN',
         #in_channels=[256, 512, 1024, 2048],
         in_channels=[24, 40, 112, 320],
         out_channels=256,
@@ -54,12 +45,14 @@ train_cfg = dict(
     allowed_border=-1,
     pos_weight=-1,
     debug=False)
+
 test_cfg = dict(
     nms_pre=1000,
     min_bbox_size=0,
     score_thr=0.05,
     nms=dict(type='nms', iou_thr=0.5),
     max_per_img=100)
+    
 # dataset settings
 dataset_type = 'Coco_Seg_Dataset'
 img_norm_cfg = dict(

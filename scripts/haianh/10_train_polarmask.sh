@@ -1,4 +1,4 @@
-CONFIG_FILE='ccdetection/configs/fcos_mask/fcos_mask_r50_fp16.py'
+CONFIG_FILE='ccdetection/configs/polarmask/polar_768_1x_r50.py'
 GPUS=2
 SEED=0
 # python ./mmdetection/tools/train.py $CONFIG_FILE
