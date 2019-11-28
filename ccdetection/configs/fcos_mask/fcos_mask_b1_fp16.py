@@ -4,7 +4,7 @@ debug = True
 
 # fp16 settings
 fp16 = dict(loss_scale=512.)
-
+train_mask=True
 
 lr_config = dict(
     policy='step',
@@ -101,7 +101,7 @@ model = dict(
         num_classes=81,
 		in_channels=model_cfg['fpn_channel'],
         stacked_convs=4,
-        feat_channels=model_cfg['fpn_channel'],
+        feat_channels=128,#model_cfg['fpn_channel'],
         strides=[8, 16, 32, 64, 128],
         loss_cls=dict(
             type='FocalLoss',
@@ -118,14 +118,14 @@ model = dict(
     mask_roi_extractor=dict(
         type='SingleRoIExtractor',
         roi_layer=dict(type='RoIAlign', out_size=roi_out_size, sample_num=2),
-        out_channels=256,
+        out_channels=model_cfg['fpn_channel'],
         featmap_strides=[8,16, 32],
         finest_scale=112),
 
     mask_head=dict(
         type='FCNMaskHead',
         num_convs=4,
-        in_channels=256,
+        in_channels=model_cfg['fpn_channel'],
         conv_out_channels=256,
         num_classes=81,
         loss_mask=dict(
@@ -136,7 +136,7 @@ model = dict(
 
 # training and testing settings
 train_cfg = dict(
-    train_mask_after_epoch=train_mask_after_epoch,
+    train_mask=train_mask,
     assigner=dict(
         type='MaxIoUAssigner',
         pos_iou_thr=0.5,
