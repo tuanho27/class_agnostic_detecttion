@@ -1,3 +1,5 @@
+ccdetection/mmdet/models/backbones/pytorch-image-models/output/
+ccdetection/mmdet/models/backbones/pytorch-image-models/summary.csv
 mmdetection/
 workdir/
 work_dirs/

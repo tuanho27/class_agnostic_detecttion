@@ -1862,5 +1862,24 @@ def efficientnet_b2_idle(pretrained=False, num_classes=1000, in_chans=3, **kwarg
         load_pretrained(model, default_cfg, num_classes, in_chans)
     return model
 
+
+@register_model
+def efficientnet_b0_idle(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
+    """ EfficientNet-B0 IDLE"""
+    default_cfg = default_cfgs['efficientnet_b0']
+    # NOTE for train, drop_rate should be 0.3
+    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    kwargs['block_type'] = 'idle'
+    model = _gen_efficientnet(
+        channel_multiplier=1.1, depth_multiplier=1.2,
+        num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model.default_cfg = default_cfg
+    if pretrained:
+        load_pretrained(model, default_cfg, num_classes, in_chans)
+    return model
+
+
+
+
 def gen_efficientnet_model_names():
     return set(_models)
