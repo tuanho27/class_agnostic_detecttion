@@ -1851,7 +1851,6 @@ def tf_mixnet_l(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
 def efficientnet_b2_idle(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
     """ EfficientNet-B2 IDLE"""
     default_cfg = default_cfgs['efficientnet_b2']
-    import ipdb; ipdb.set_trace()
 
     # NOTE for train, drop_rate should be 0.3
     #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
@@ -1875,6 +1874,22 @@ def efficientnet_b0_idle(pretrained=False, num_classes=1000, in_chans=3, **kwarg
     kwargs['block_type'] = 'idle'
     model = _gen_efficientnet(
         channel_multiplier=1.1, depth_multiplier=1.2,
+        num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model.default_cfg = default_cfg
+    if pretrained:
+        load_pretrained(model, default_cfg, num_classes, in_chans)
+    return model
+
+
+@register_model
+def efficientnet_b1_idle(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
+    """ EfficientNet-B1 Idle"""
+    default_cfg = default_cfgs['efficientnet_b1']
+    kwargs['block_type'] = 'idle'
+    # NOTE for train, drop_rate should be 0.2
+    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    model = _gen_efficientnet(
+        channel_multiplier=1.0, depth_multiplier=1.1,
         num_classes=num_classes, in_chans=in_chans, **kwargs)
     model.default_cfg = default_cfg
     if pretrained:
