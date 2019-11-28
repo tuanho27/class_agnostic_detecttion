@@ -1,6 +1,6 @@
 from mmdet.models.backbones import timm_channel_pyramid
 
-debug = True
+debug = False
 
 # fp16 settings
 fp16 = dict(loss_scale=512.)
@@ -20,9 +20,10 @@ log_config = dict(
     hooks=[
         dict(type='TextLoggerHook'),
     ])
+
 # yapf:enable
 # runtime settings
-total_epochs = 50
+total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/fcos_mask_r50_fp16'
