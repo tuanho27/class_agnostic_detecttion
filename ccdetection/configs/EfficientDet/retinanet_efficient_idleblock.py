@@ -19,7 +19,7 @@ debug = False
 fp16 = dict(loss_scale=512.)
 # debug
 num_samples = None
-imgs_per_gpu = 24
+imgs_per_gpu = 8
 workers_per_gpu = 4
 
 checkpoint_config = dict(interval=1)

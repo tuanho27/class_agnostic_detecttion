@@ -1,5 +1,5 @@
 CONFIG_FILE='ccdetection/configs/EfficientDet/retinanet_efficient_idleblock.py'
-GPUS=2
+GPUS=1
 SEED=0
 
 python -m torch.distributed.launch --nproc_per_node=$GPUS \

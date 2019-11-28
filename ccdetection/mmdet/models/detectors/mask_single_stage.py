@@ -134,6 +134,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                 gt_bboxes[i],
                 gt_labels[i],
                 feats=[lvl_feat[i][None] for lvl_feat in x])
+                
             sampling_results.append(sampling_result)
 
         # #self.time_records['assign'].append(self.timer.since_last_check())
