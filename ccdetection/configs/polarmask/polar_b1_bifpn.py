@@ -8,11 +8,11 @@ lr_start = 1e-2
 lr_end = 1e-4
 imgs_per_gpu = 8
 total_epochs = 12
-resume_from = None
 pretrained = None
 img_scale = (1280, 768)
 data_root = 'datasets/coco/'
 work_dir = 'work_dirs/polar_b1_bifpn'
+resume_from = f'{work_dir}/latest.pth'
 load_from = None#'/home/member/Workspace/phase3/polar-B1-FPN/epoch_9.pth'
 fp16 = dict(loss_scale=512.)
 
