@@ -79,12 +79,19 @@ class PolarCustomDataset(Dataset):
                  corruption=None,
                  corruption_severity=1,
                  skip_img_without_anno=True,
-                 test_mode=False):
+                 test_mode=False, num_samples=None, repeat=100):
         # prefix of images path
         self.img_prefix = img_prefix
 
         # load annotations (and proposals)
         self.img_infos = self.load_annotations(ann_file)
+        timer = mmcv.Timer()
+        # self.img_infos = self.load_annotations(self.ann_file)
+        print("Loaded annotation times:", timer.since_start())
+        if num_samples is not None:
+            self.img_infos = self.img_infos[:num_samples]
+            for i in range(repeat-1):
+                self.img_infos += self.img_infos[:num_samples]
         if proposal_file is not None:
             self.proposals = self.load_proposals(proposal_file)
         else:
@@ -206,6 +213,7 @@ class PolarCustomDataset(Dataset):
             return data
 
     def prepare_train_img(self, idx):
+
         img_info = self.img_infos[idx]
         # load image
         img = mmcv.imread(osp.join(self.img_prefix, img_info['filename']))

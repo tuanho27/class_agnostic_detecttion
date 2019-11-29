@@ -1,5 +1,5 @@
 from mmdet.models.backbones import timm_channel_pyramid
-debug=True
+debug=False
 
 # """
 # 'efficientnet_b0':[24,40,112,320],
@@ -46,21 +46,18 @@ train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
 train_mask=True
 if debug:
-	optimizer = dict(type='Adam', lr=lr_start/50, weight_decay=1e-4)
-	train_ann_file = data_root + 'annotations/instances_val2017.json'
-	train_img_dir = data_root+'images/val2017/'
-	# lr_start = 1e-2
-	# lr_end = 1e-4
+	optimizer = dict(type='Adam', lr=lr_start/10)#, weight_decay=1e-4)
+	# train_ann_file = data_root + 'annotations/instances_val2017.json'
+	# train_img_dir = data_root+'images/val2017/'
 	imgs_per_gpu = 1
-	total_epochs = 351
+	total_epochs = 201
 	lr_config = dict(
-		policy='cosine', target_lr=lr_end/50, by_epoch=False,
-		warmup='linear', warmup_iters=50, warmup_ratio=1.0/3,
+		policy='cosine', target_lr=lr_start/10, by_epoch=False,
+		warmup='linear', warmup_iters=1, warmup_ratio=1.0,
 	)
-
 	num_samples = 1
 	workers_per_gpu = 1
-	checkpoint_config = dict(interval=50)
+	checkpoint_config = dict(interval=10)
 	log_config = dict(
 		interval=1,
 		hooks=[
@@ -73,6 +70,7 @@ if debug:
 
 
 load_from = None #or '/set/by/load_from/in/command_train/command_test'
+# resume_from = f'{work_dir}/latest.pth' #or '/set/by/resume_from/in/command_train/command_test'
 resume_from = None #or '/set/by/resume_from/in/command_train/command_test'
 wh_ratio=1333/800
 EfficientDetConfig ={
@@ -84,63 +82,7 @@ EfficientDetConfig ={
 	'D5': dict(Backbone='efficientnet_b5',ImgSize=(1280*wh_ratio, 1280),fpn_channel=288,fpn_stack=7,head_depth=4),
 	'D6': dict(Backbone='efficientnet_b6',ImgSize=(1408*wh_ratio, 1408),fpn_channel=384,fpn_stack=8,head_depth=5),
 }
-model_cfg=EfficientDetConfig['D0']
-# model settings
-# model = dict(
-#     type='RetinaNet',
-#     pretrained='torchvision://resnet50',
-#     backbone=dict(
-#         type='ResNet',
-#         depth=50,
-#         num_stages=4,
-#         out_indices=(0, 1, 2, 3),
-#         frozen_stages=1,
-#         style='pytorch'),
-#     neck=dict(
-#         type='FPN',
-#         in_channels=[256, 512, 1024, 2048],
-#         out_channels=256,
-#         start_level=1,
-#         add_extra_convs=True,
-#         num_outs=5),
-#     bbox_head=dict(
-#         type='RetinaHead',
-#         num_classes=81,
-#         in_channels=256,
-#         stacked_convs=4,
-#         feat_channels=256,
-#         octave_base_scale=4,
-#         scales_per_octave=3,
-#         anchor_ratios=[0.5, 1.0, 2.0],
-#         anchor_strides=[8, 16, 32, 64, 128],
-#         target_means=[.0, .0, .0, .0],
-#         target_stds=[1.0, 1.0, 1.0, 1.0],
-#         loss_cls=dict(
-#             type='FocalLoss',
-#             use_sigmoid=True,
-#             gamma=2.0,
-#             alpha=0.25,
-#             loss_weight=1.0),
-#         loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0)))
-# # training and testing settings
-# train_cfg = dict(
-#     assigner=dict(
-#         type='MaxIoUAssigner',
-#         pos_iou_thr=0.5,
-#         neg_iou_thr=0.4,
-#         min_pos_iou=0,
-#         ignore_iof_thr=-1),
-#     allowed_border=-1,
-#     pos_weight=-1,
-#     debug=False)
-# test_cfg = dict(
-#     nms_pre=1000,
-#     min_bbox_size=0,
-#     score_thr=0.005,
-#     nms=dict(type='nms', iou_thr=0.5),
-#     max_per_img=100)
-
-
+model_cfg=EfficientDetConfig['D1']
 # model settings
 model = dict(
 	type='RetinaMask',
@@ -232,9 +174,9 @@ train_cfg = dict(
 		),
 		sampler=dict(
 			type='RandomSampler',
-			num=512,
+			num=1000,
 			pos_fraction=0.25,
-			neg_pos_ub=-1,
+			neg_pos_ub=-1,#0067
 			add_gt_as_proposals=True,
 		),
 		mask_size=28,
@@ -246,7 +188,7 @@ train_cfg = dict(
 test_cfg = dict(
 	nms_pre=1000,
     min_bbox_size=0,
-    score_thr=0.05,
+    score_thr=0.5,
     nms=dict(type='nms', iou_thr=0.5),
     max_per_img=100,
     rcnn=dict(

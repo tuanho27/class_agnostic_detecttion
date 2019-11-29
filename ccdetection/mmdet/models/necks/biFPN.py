@@ -46,8 +46,8 @@ class BiFPN(nn.Module):
             self.fpn_up.append(fpn_up)
 
         # Fuse layers
-        self.fuse_td = nn.ModuleList()
-        self.fuse_out = nn.ModuleList()
+        # self.fuse_td = nn.ModuleList()
+        # self.fuse_out = nn.ModuleList()
         # for i in range(num_outs-1):
         #     self.fuse_td.append(WeightSum(2))
         #     if i == num_outs-2:
