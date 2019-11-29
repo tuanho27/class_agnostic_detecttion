@@ -1,5 +1,5 @@
 from mmdet.models.backbones import timm_channel_pyramid
-debug=True
+debug=False
 
 
 
@@ -15,12 +15,6 @@ data_root = 'datasets/coco/'
 work_dir = 'work_dirs/polar_b1_bifpn'
 load_from = None#'/home/member/Workspace/phase3/polar-B1-FPN/epoch_9.pth'
 fp16 = dict(loss_scale=512.)
-
-
-
-
-
-
 
 step = [8, 11]
 log_interval = 20
