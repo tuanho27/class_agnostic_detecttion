@@ -44,7 +44,7 @@ imgs_per_gpu = 2
 total_epochs = 12
 train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
-train_mask=False
+train_mask=True
 if debug:
 	optimizer = dict(type='Adam', lr=lr_start/50, weight_decay=1e-4)
 	train_ann_file = data_root + 'annotations/instances_val2017.json'
@@ -52,7 +52,7 @@ if debug:
 	# lr_start = 1e-2
 	# lr_end = 1e-4
 	imgs_per_gpu = 1
-	total_epochs = 501
+	total_epochs = 351
 	lr_config = dict(
 		policy='cosine', target_lr=lr_end/50, by_epoch=False,
 		warmup='linear', warmup_iters=50, warmup_ratio=1.0/3,
@@ -156,7 +156,7 @@ model = dict(
 		out_channels=model_cfg['fpn_channel'],
 		start_level=1,
 		num_outs=5,
-		fpn_stack=1,#model_cfg['fpn_stack'],
+		fpn_stack=model_cfg['fpn_stack'],
 		fpn_conv_groups=model_cfg['fpn_channel'], #Use DepthWise
 		add_extra_convs=True,
 	),
