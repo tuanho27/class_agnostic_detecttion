@@ -3,7 +3,7 @@
 CONFIG_FILE='ccdetection/configs/polarmask/polar_b1_semseg.py'
 WORK_DIR='/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/'
 
-th=8
+th=9
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 RESULT_FILE="${WORK_DIR}/epoch_${th}.pkl"
 

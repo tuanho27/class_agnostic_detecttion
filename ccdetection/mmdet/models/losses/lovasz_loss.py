@@ -115,8 +115,8 @@ class BinaryLovaszLoss(nn.Module):
 
 	def forward(self, logits, masks, *args, **kargs):
 		"""
-		logits: (torch.float32)  shape (N, C, H, W)
-		masks: (torch.int64, torch.float32) shape (N, C, H, W), value in {0;1}
+		logits: (torch.float32)  shape (N,C,H,W) or (N,C)
+		masks: (torch.int64, torch.float32) shape (N,C,H,W) or (N,C), value in {0;1}
 		"""
 		masks = masks.float()
 		if self.per_image:
