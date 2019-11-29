@@ -6,7 +6,7 @@ if ('184' in gethostname()) or ('185' in gethostname()):
 	lr_end = 1e-4
 	imgs_per_gpu = 8
 	total_epochs = 12
-	resume_from = None
+	resume_from = '/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/latest.pth'
 	pretrained = None
 	img_scale = (1280, 768)
 	data_root = '/home/member/Workspace/dataset/coco/'
