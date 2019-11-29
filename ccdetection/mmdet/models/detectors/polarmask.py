@@ -80,8 +80,6 @@ class PolarMask(SingleStageDetector):
 
 		if self.with_semseg:
 			mask_pred = self.semseg_head(x)
-			mask_pred = mask_pred.reshape(mask_pred.shape[0], -1)
-			gt_fg_mask = gt_fg_mask.reshape(gt_fg_mask.shape[0], -1)
 			loss_semseg = self.semseg_head.loss(mask_pred, gt_fg_mask)
 			losses.update(loss_semseg)
 

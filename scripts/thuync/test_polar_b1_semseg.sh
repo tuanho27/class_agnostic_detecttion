@@ -3,12 +3,12 @@
 CONFIG_FILE='ccdetection/configs/polarmask/polar_b1_semseg.py'
 WORK_DIR='/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/'
 
-th=12
+th=8
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 RESULT_FILE="${WORK_DIR}/epoch_${th}.pkl"
 
-GPUS=2
-export CUDA_VISIBLE_DEVICES=1
+GPUS=4
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 PYTHON=${PYTHON:-"python"}
 
 $PYTHON -m torch.distributed.launch --nproc_per_node=$GPUS \
