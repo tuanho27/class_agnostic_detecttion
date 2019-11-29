@@ -56,90 +56,90 @@ dataset_type = 'Coco_Seg_Dataset'
 img_norm_cfg = dict(
     mean=[102.9801, 115.9465, 122.7717], std=[1.0, 1.0, 1.0], to_rgb=False)
 
-#train_pipeline = [
-#    dict(type='LoadImageFromFile'),
-#    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
-#    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
-#    dict(type='RandomFlip', flip_ratio=0.5),
-#    dict(type='Normalize', **img_norm_cfg),
-#    dict(type='Pad', size_divisor=32),
-#    dict(type='DefaultFormatBundle'),
-#    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
-#]
-#test_pipeline = [
-#    dict(type='LoadImageFromFile'),
-#    dict(
-#        type='MultiScaleFlipAug',
-#        img_scale=(1333, 800),
-#        flip=False,
-#        transforms=[
-#            dict(type='Resize', keep_ratio=True),
-#            dict(type='RandomFlip'),
-#            dict(type='Normalize', **img_norm_cfg),
-#            dict(type='Pad', size_divisor=32),
-#            dict(type='ImageToTensor', keys=['img']),
-#            dict(type='Collect', keys=['img']),
-#        ])
-#]
-#data = dict(
-#    imgs_per_gpu=2,
-#    workers_per_gpu=2,
-#    train=dict(
-#        type=dataset_type,
-#        ann_file=data_root + 'annotations/instances_train2017.json',
-#        img_prefix=data_root + 'train2017/',
-#        pipeline=train_pipeline),
-#    val=dict(
-#        type=dataset_type,
-#        ann_file=data_root + 'annotations/instances_val2017.json',
-#        img_prefix=data_root + 'val2017/',
-#        pipeline=test_pipeline),
-#    test=dict(
-#        type=dataset_type,
-#        ann_file=data_root + 'annotations/instances_val2017.json',
-#        img_prefix=data_root + 'val2017/',
-#        pipeline=test_pipeline))
-
+train_pipeline = [
+   dict(type='LoadImageFromFile'),
+   dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+   dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
+   dict(type='RandomFlip', flip_ratio=0.5),
+   dict(type='Normalize', **img_norm_cfg),
+   dict(type='Pad', size_divisor=32),
+   dict(type='DefaultFormatBundle'),
+   dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+]
+test_pipeline = [
+   dict(type='LoadImageFromFile'),
+   dict(
+       type='MultiScaleFlipAug',
+       img_scale=(1333, 800),
+       flip=False,
+       transforms=[
+           dict(type='Resize', keep_ratio=True),
+           dict(type='RandomFlip'),
+           dict(type='Normalize', **img_norm_cfg),
+           dict(type='Pad', size_divisor=32),
+           dict(type='ImageToTensor', keys=['img']),
+           dict(type='Collect', keys=['img']),
+       ])
+]
 data = dict(
-    imgs_per_gpu=4,
-    workers_per_gpu=5,
-    train=dict(
-        type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'train2017/',
-        img_scale=(1280, 768),
-        img_norm_cfg=img_norm_cfg,
-        # size_divisor=0,
-        flip_ratio=0.5,
-        with_mask=True,
-        with_crowd=False,
-        with_label=True,
-        resize_keep_ratio=False),
-    val=dict(
-        type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
-        img_scale=(1280, 768),
-        img_norm_cfg=img_norm_cfg,
-        # size_divisor=0,
-        flip_ratio=0,
-        with_mask=False,
-        with_crowd=False,
-        with_label=True,
-        resize_keep_ratio=False),
-    test=dict(
-        type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
-        img_scale=(1280, 768),
-        img_norm_cfg=img_norm_cfg,
-        size_divisor=32,
-        flip_ratio=0,
-        with_mask=False,
-        with_crowd=False,
-        with_label=False,
-        resize_keep_ratio=False,
-        test_mode=True))
+   imgs_per_gpu=2,
+   workers_per_gpu=2,
+   train=dict(
+       type=dataset_type,
+       ann_file=data_root + 'annotations/instances_train2017.json',
+       img_prefix=data_root + 'train2017/',
+       pipeline=train_pipeline),
+   val=dict(
+       type=dataset_type,
+       ann_file=data_root + 'annotations/instances_val2017.json',
+       img_prefix=data_root + 'val2017/',
+       pipeline=test_pipeline),
+   test=dict(
+       type=dataset_type,
+       ann_file=data_root + 'annotations/instances_val2017.json',
+       img_prefix=data_root + 'val2017/',
+       pipeline=test_pipeline))
+
+# data = dict(
+#     imgs_per_gpu=4,
+#     workers_per_gpu=5,
+#     train=dict(
+#         type=dataset_type,
+#         ann_file=data_root + 'annotations/instances_train2017.json',
+#         img_prefix=data_root + 'train2017/',
+#         img_scale=(1280, 768),
+#         img_norm_cfg=img_norm_cfg,
+#         # size_divisor=0,
+#         flip_ratio=0.5,
+#         with_mask=True,
+#         with_crowd=False,
+#         with_label=True,
+#         resize_keep_ratio=False),
+#     val=dict(
+#         type=dataset_type,
+#         ann_file=data_root + 'annotations/instances_val2017.json',
+#         img_prefix=data_root + 'val2017/',
+#         img_scale=(1280, 768),
+#         img_norm_cfg=img_norm_cfg,
+#         # size_divisor=0,
+#         flip_ratio=0,
+#         with_mask=False,
+#         with_crowd=False,
+#         with_label=True,
+#         resize_keep_ratio=False),
+#     test=dict(
+#         type=dataset_type,
+#         ann_file=data_root + 'annotations/instances_val2017.json',
+#         img_prefix=data_root + 'val2017/',
+#         img_scale=(1280, 768),
+#         img_norm_cfg=img_norm_cfg,
+#         size_divisor=32,
+#         flip_ratio=0,
+#         with_mask=False,
+#         with_crowd=False,
+#         with_label=False,
+#         resize_keep_ratio=False,
+#         test_mode=True))
 # optimizer
 lr_ratio = 1
 
