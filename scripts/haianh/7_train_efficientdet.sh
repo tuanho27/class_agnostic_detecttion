@@ -1,5 +1,5 @@
 CONFIG_FILE='ccdetection/configs/EfficientDet/retinamask_efficientdet.py'
-GPUS=2
+GPUS=1
 SEED=0
 
 # python -m torch.distributed.launch --nproc_per_node=$GPUS \
@@ -9,4 +9,4 @@ SEED=0
 python ./mmdetection/tools/train.py $CONFIG_FILE
 # export CUDA_VISIBLE_DEVICES=0
 # sh scripts/4.1_test.sh
-# sh scripts/6.1_test.sh  
+sh scripts/haianh/7.1_test.sh  

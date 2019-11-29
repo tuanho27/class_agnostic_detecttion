@@ -282,7 +282,7 @@ def main():
         collate_fn=collate_fn,
     )
 
-    eval_dir = os.path.join(args.data, 'validation')
+    eval_dir = os.path.join(args.data, 'val')
     if not os.path.isdir(eval_dir):
         logging.error('Validation folder does not exist at: {}'.format(eval_dir))
         exit(1)

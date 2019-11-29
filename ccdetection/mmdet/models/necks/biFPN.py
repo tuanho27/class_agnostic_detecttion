@@ -8,20 +8,12 @@ from ..registry import NECKS
 from ..utils import ConvModule
 import copy
 
-class WeightSum(nn.Module):
-    def __init__(self,length):
-        super(WeightSum,self).__init__()
-        assert length==2 or length==3
-        self.l = length
-        self.w = nn.Parameter(torch.ones(length,requires_grad=True))
+# class WeightSum(nn.Module):
+#     def __init__(self,length):
+#         super(WeightSum,self).__init__()
+#     def forward(self,x):
+#         return sum(x)
 
-    def forward(self,x):
-        assert isinstance(x,list) and len(x)==self.l
-        w= self.w/(self.w.sum()+1e-6)
-        if self.l==2:
-            return w[0]*x[0]+w[1]*x[1]
-        else:
-            return w[0]*x[0]+w[1]*x[1]+w[2]*x[2]
 
 class BiFPN(nn.Module):
     def __init__(self,
@@ -56,12 +48,12 @@ class BiFPN(nn.Module):
         # Fuse layers
         self.fuse_td = nn.ModuleList()
         self.fuse_out = nn.ModuleList()
-        for i in range(num_outs-1):
-            self.fuse_td.append(WeightSum(2))
-            if i == num_outs-2:
-                self.fuse_out.append(WeightSum(2))
-            else:
-                self.fuse_out.append(WeightSum(3))
+        # for i in range(num_outs-1):
+        #     self.fuse_td.append(WeightSum(2))
+        #     if i == num_outs-2:
+        #         self.fuse_out.append(WeightSum(2))
+        #     else:
+        #         self.fuse_out.append(WeightSum(3))
 
     def init_weights(self):
         for m in self.modules():
@@ -75,7 +67,7 @@ class BiFPN(nn.Module):
         P_td = [P.clone() for P in P_in]
         for i in range(self.num_outs-1, 1, -1):
             P_up = F.interpolate(P_td[i], scale_factor=2, mode='nearest')
-            P_fuse = self.fuse_td[i-1]([P_td[i - 1],P_up])
+            P_fuse = P_td[i - 1] + P_up
             P_td[i - 1] = self.fpn_down[i-1](P_fuse)
 
         # build from bottom-up path
@@ -83,9 +75,9 @@ class BiFPN(nn.Module):
         for i in range(1,self.num_outs):
             P_down = F.avg_pool2d(P_out[i-1],kernel_size=2,stride=2)
             if i==self.num_outs-1:
-                P_fuse = self.fuse_out[i-1]([P_in[i],P_down])
+                P_fuse = P_in[i]+P_down
             else:
-                P_fuse = self.fuse_out[i-1]([P_in[i],P_out[i],P_down])
+                P_fuse = P_in[i]+P_out[i]+P_down
             P_out[i] = self.fpn_up[i-1](P_fuse)
 
         return P_out
@@ -107,6 +99,7 @@ class StackBiFPN(nn.Module):
                  conv_cfg=None,
                  norm_cfg=None,
                  activation=None):
+
         super(StackBiFPN, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
@@ -175,7 +168,7 @@ class StackBiFPN(nn.Module):
                                 conv_cfg,
                                 norm_cfg,
                                 activation) ]*fpn_stack)
-    # default init_weights for conv(msra) and norm in ConvModule
+                                
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -200,6 +193,7 @@ class StackBiFPN(nn.Module):
                 in_feature = inputs[-1]
             else:
                 in_feature = P_out[-1]
+
             for extra_conv in self.extra_convs:
                 in_feature = extra_conv(in_feature)
                 P_out.append(in_feature)
