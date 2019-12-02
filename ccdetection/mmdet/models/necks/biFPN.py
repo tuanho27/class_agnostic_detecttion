@@ -8,11 +8,17 @@ from ..registry import NECKS
 from ..utils import ConvModule
 import copy
 
-# class WeightSum(nn.Module):
-#     def __init__(self,length):
-#         super(WeightSum,self).__init__()
-#     def forward(self,x):
-#         return sum(x)
+class WeightSum(nn.Module):
+    def __init__(self,length):
+        super(WeightSum,self).__init__()
+
+    def forward(self,x):
+        w = F.relu(self.w)
+        rt = []
+        _x, _w in zip(x, w):
+            rt.append(_x*_w)
+        return sum(rt)
+        # return sum(x)
 
 
 class BiFPN(nn.Module):
@@ -45,15 +51,15 @@ class BiFPN(nn.Module):
             self.fpn_down.append(fpn_down)
             self.fpn_up.append(fpn_up)
 
-        # Fuse layers
-        # self.fuse_td = nn.ModuleList()
-        # self.fuse_out = nn.ModuleList()
-        # for i in range(num_outs-1):
-        #     self.fuse_td.append(WeightSum(2))
-        #     if i == num_outs-2:
-        #         self.fuse_out.append(WeightSum(2))
-        #     else:
-        #         self.fuse_out.append(WeightSum(3))
+        Fuse layers
+        self.fuse_td = nn.ModuleList()
+        self.fuse_out = nn.ModuleList()
+        for i in range(num_outs-1):
+            self.fuse_td.append(WeightSum(2))
+            if i == num_outs-2:
+                self.fuse_out.append(WeightSum(2))
+            else:
+                self.fuse_out.append(WeightSum(3))
 
     def init_weights(self):
         for m in self.modules():
