@@ -10,15 +10,17 @@ import copy
 
 class WeightSum(nn.Module):
     def __init__(self,length):
-        super(WeightSum,self).__init__()
+        super(WeightSum, self).__init__()
+        init = 1#1/length
+        self.w = nn.Parameter(torch.Tensor(length).fill_(init))
 
     def forward(self,x):
+        # import ipdb; ipdb.set_trace()
         w = F.relu(self.w)
         rt = []
-        _x, _w in zip(x, w):
-            rt.append(_x*_w)
+        for i, _x in enumerate(x):
+            rt.append(_x * w[i])
         return sum(rt)
-        # return sum(x)
 
 
 class BiFPN(nn.Module):
@@ -51,7 +53,7 @@ class BiFPN(nn.Module):
             self.fpn_down.append(fpn_down)
             self.fpn_up.append(fpn_up)
 
-        Fuse layers
+        # Fuse layers
         self.fuse_td = nn.ModuleList()
         self.fuse_out = nn.ModuleList()
         for i in range(num_outs-1):
@@ -73,7 +75,7 @@ class BiFPN(nn.Module):
         P_td = [P.clone() for P in P_in]
         for i in range(self.num_outs-1, 1, -1):
             P_up = F.interpolate(P_td[i], scale_factor=2, mode='nearest')
-            P_fuse = P_td[i - 1] + P_up
+            P_fuse = self.fuse_td[i-1]([P_td[i - 1], P_up])
             P_td[i - 1] = self.fpn_down[i-1](P_fuse)
 
         # build from bottom-up path
@@ -81,9 +83,11 @@ class BiFPN(nn.Module):
         for i in range(1,self.num_outs):
             P_down = F.avg_pool2d(P_out[i-1],kernel_size=2,stride=2)
             if i==self.num_outs-1:
-                P_fuse = P_in[i]+P_down
+                P_fuse = self.fuse_out[i-1]([P_in[i], P_down])
+                # P_fuse = P_in[i]+P_down
             else:
-                P_fuse = P_in[i]+P_out[i]+P_down
+                P_fuse = self.fuse_out[i-1]([P_in[i], P_out[i], P_down])
+                # P_fuse = P_in[i]+P_out[i]+P_down
             P_out[i] = self.fpn_up[i-1](P_fuse)
 
         return P_out
