@@ -10,8 +10,8 @@ if ('184' in gethostname()) or ('185' in gethostname()):
 	pretrained = None
 	img_scale = (1280, 768)
 	data_root = '/home/member/Workspace/dataset/coco/'
-	work_dir = '/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/'
-	load_from = '/home/member/Workspace/phase3/polar-B1-FPN/epoch_9.pth'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/polar_b2_semseg/'
+	load_from = None
 	fp16 = dict(loss_scale=512.)
 
 # Debug
@@ -50,19 +50,17 @@ else:
 	conv_cfg = None
 	norm_cfg = None
 
-fpn_channels = 256
-
 model = dict(
 	type='PolarMask',
 	pretrained=None,
 	backbone=dict(
 		type='TimmCollection',
-		model_name='efficientnet_b1',
+		model_name='efficientnet_b2',
 	),
 	neck=dict(
 		type='FPN',
-		in_channels=[24, 40, 112, 320],
-		out_channels=fpn_channels,
+		in_channels=[24,48,120,352],
+		out_channels=256,
 		start_level=1,
 		add_extra_convs=True,
 		extra_convs_on_inputs=False,  # use P5
@@ -72,9 +70,9 @@ model = dict(
 	bbox_head=dict(
 		type='PolarMask_Head',
 		num_classes=81,
-		in_channels=fpn_channels,
+		in_channels=256,
 		stacked_convs=4,
-		feat_channels=fpn_channels,
+		feat_channels=256,
 		strides=[8, 16, 32, 64, 128],
 		loss_cls=dict(
 			type='FocalLoss',
@@ -89,9 +87,9 @@ model = dict(
 	semseg_head=dict(
 		type='SemSegHead',
 		num_convs=4,
-		in_channels=fpn_channels,
+		in_channels=256,
 		conv_kernel_size=3,
-		conv_out_channels=fpn_channels,
+		conv_out_channels=256,
 		input_index=0,
 		upsample_method='bilinear',
 		upsample_ratio=2,

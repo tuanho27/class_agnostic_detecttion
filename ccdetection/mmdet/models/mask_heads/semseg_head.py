@@ -103,6 +103,12 @@ class SemSegHead(nn.Module):
 
 	@force_fp32(apply_to=('mask_pred', ))
 	def loss(self, mask_pred, mask_targets):
+		# Flatten tensor
+		num_classes = mask_pred.shape[1]
+		mask_pred = mask_pred.permute(0, 2, 3, 1).reshape(-1, num_classes)
+		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, num_classes)
+
+		# Compute loss
 		loss_semseg = self.loss_mask(mask_pred, mask_targets)
 		return {'loss_semseg': loss_semseg}
 

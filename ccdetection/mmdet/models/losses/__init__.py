@@ -15,6 +15,7 @@ from .focal_kl_loss import FocalKLLoss
 from .generalized_iou_loss import GeneralizedIOULoss
 from .segm_focal_loss import SegmFocalLoss
 from .mask_iou_loss import MaskIOULoss, MaskIOULoss_v2, MaskIOULoss_v3
+from .lovasz_loss import BinaryLovaszLoss
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     'FocalKLLoss', 'SegmFocalLoss',
     'GeneralizedIOULoss',
     'MaskIOULoss', 'MaskIOULoss_v2', 'MaskIOULoss_v3',
+    'BinaryLovaszLoss',
 ]

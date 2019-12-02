@@ -6,11 +6,11 @@ cd ccdetpose
 conda create -n ccdetpose python=3.7 -y
 conda activate ccdetpose
 
-conda install pytorch torchvision cudatoolkit=10.0 -c pytorch -y
 conda install cython pyyaml -y
 conda install mpmath pandas tqdm -y
 conda install -c conda-forge json_tricks -y
 pip install pytest torch_dct imagecorruptions albumentations pycocotools
+conda install pytorch torchvision cudatoolkit=10.0 -c pytorch -y
 
 #Setup mmdetection
 rm -rf mmdetection
