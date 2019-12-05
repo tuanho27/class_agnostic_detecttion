@@ -8,7 +8,8 @@ from ..registry import DETECTORS
 from .base import BaseDetector
 import time
 import torch
-
+# from ..utils import ConvModule
+# from ..builder import build_loss
 
 @DETECTORS.register_module
 class PolarMask(SingleStageDetector):
@@ -18,18 +19,24 @@ class PolarMask(SingleStageDetector):
 				 neck,
 				 bbox_head,
 				 semseg_head=None,
+				 yolact_proto_head=None,
 				 train_cfg=None,
 				 test_cfg=None,
 				 pretrained=None):
+				# loss_cls_combine=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)):
 
 		super(PolarMask, self).__init__(backbone, neck, bbox_head, train_cfg,
 								   test_cfg, pretrained)
 		self.semseg_head = builder.build_head(semseg_head)
+		self.yolact_proto_head = builder.build_head(yolact_proto_head)
 		self.init_weights(pretrained=pretrained)
 
 	@property
 	def with_semseg(self):
 		return hasattr(self, 'semseg_head') and self.semseg_head is not None
+
+	def with_yolact(self):
+		return hasattr(self, 'yolact_proto_head') and self.yolact_proto_head is not None
 
 	def init_weights(self, pretrained=None):
 		super(PolarMask, self).init_weights(pretrained)
@@ -79,9 +86,11 @@ class PolarMask(SingleStageDetector):
 		)
 
 		if self.with_semseg:
-			mask_pred = self.semseg_head(x)
-			loss_semseg = self.semseg_head.loss(mask_pred, gt_fg_mask)
+			mask_pred, new_outs_cls = self.semseg_head(x, outs)
+			# loss_semseg, loss_combine_cls_seg = self.semseg_head.loss(mask_pred, gt_fg_mask, new_outs_cls, outs[1], extra_data)
+			loss_cls_combine 
 			losses.update(loss_semseg)
+			# losses.update(loss_combine_cls_seg)
 
 		return losses
 

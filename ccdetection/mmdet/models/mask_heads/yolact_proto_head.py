@@ -14,21 +14,20 @@ from ..utils import ConvModule
 INF = 1e8
 
 @HEADS.register_module
-class SemSegHead(nn.Module):
-
+class YolactProtoHead(nn.Module):
 	def __init__(self,
-				num_convs=4,
+				num_convs=3,
+				num_convs_post=1,
 				in_channels=256,
 				conv_kernel_size=3,
-				conv_out_channels=256,
+				conv_out_channels=32,
 				input_index=0,
 				upsample_method='bilinear',
 				upsample_ratio=2,
 				num_classes=1,
 				conv_cfg=None,
 				norm_cfg=None,
-				loss_mask=dict(type='CrossEntropyLoss', loss_weight=1.0),
-				loss_cls_combine=dict(
+				loss_combine_protonet=dict(
 					 type='FocalLoss',
 					 use_sigmoid=True,
 					 gamma=2.0,
@@ -36,13 +35,12 @@ class SemSegHead(nn.Module):
 					 loss_weight=1.0),
 				strides=(4, 8, 16, 32, 64),
 				regress_ranges=((-1, 64), (64, 128), (128, 256), (256, 512),(512, INF)),
-		):
 
-		super(SemSegHead, self).__init__()
-		if upsample_method not in [None, 'deconv', 'nearest', 'bilinear']:
-			raise ValueError('Invalid upsample method {}, accepted methods are "deconv", "nearest", "bilinear"'.format(upsample_method))
-
+				):
+			
+		super(YolactProtoHead, self).__init__()	
 		self.num_convs = num_convs
+		self.num_convs_post = num_convs_post
 		self.in_channels = in_channels
 		self.conv_kernel_size = conv_kernel_size
 		self.conv_out_channels = conv_out_channels
@@ -53,52 +51,52 @@ class SemSegHead(nn.Module):
 		self.conv_cfg = conv_cfg
 		self.norm_cfg = norm_cfg
 		self.fp16_enabled = False
-		self.loss_mask = build_loss(loss_mask)
-		self.loss_cls_combine = build_loss(loss_cls_combine)
 		self.convs = nn.ModuleList()
+		
+		self.loss_combine_protonet = build_loss(loss_combine_protonet)
+
 		for i in range(self.num_convs):
-			in_channels = (
-				self.in_channels if i == 0 else self.conv_out_channels)
 			padding = (self.conv_kernel_size - 1) // 2
 			self.convs.append(
 				ConvModule(
-					in_channels,
-					self.conv_out_channels,
+					self.in_channels,
+					self.in_channels,
 					self.conv_kernel_size,
 					padding=padding,
 					conv_cfg=conv_cfg,
 					norm_cfg=norm_cfg))
-		upsample_in_channels = (
-			self.conv_out_channels if self.num_convs > 0 else in_channels)
-		if self.upsample_method is None:
-			self.upsample = None
-		elif self.upsample_method == 'deconv':
-			self.upsample = nn.ConvTranspose2d(
-				upsample_in_channels,
-				self.conv_out_channels,
-				self.upsample_ratio,
-				stride=self.upsample_ratio)
-		else:
-			self.upsample = nn.Upsample(
-				scale_factor=self.upsample_ratio, mode=self.upsample_method)
+		
+		upsample_in_channels = self.in_channels
 
-		out_channels = self.num_classes
-		logits_in_channel = (
-			self.conv_out_channels
-			if self.upsample_method == 'deconv' else upsample_in_channels)
-		self.conv_logits = nn.Conv2d(logits_in_channel, out_channels, 1)
-		self.relu = nn.ReLU(inplace=True)
-		self._convs = ConvModule(
-							81,
-							80,
-							kernel_size=3, 
-							stride=1,
-							padding=1)
-		self.strides = strides
-		self.regress_ranges = regress_ranges
+		if self.upsample_method == 'deconv':
+			self.upsample = nn.ConvTranspose2d(
+									upsample_in_channels,
+									self.in_channels,
+									self.upsample_ratio,
+									stride=self.upsample_ratio)
+
+		self.convs_post = nn.ModuleList()
+		for i in range(self.num_convs_post):
+			padding = (self.conv_kernel_size - 1) // 2
+			self.convs_post.append(
+				ConvModule(
+					self.in_channels,
+					self.in_channels,
+					self.conv_kernel_size,
+					padding=padding,
+					conv_cfg=conv_cfg,
+					norm_cfg=norm_cfg))
+
+		self.conv1x1 = ConvModule(
+					self.in_channels,
+					self.conv_out_channels,
+					1,
+					padding=padding,
+					conv_cfg=conv_cfg,
+					norm_cfg=norm_cfg)
 
 	def init_weights(self):
-		for m in [self.upsample, self.conv_logits]:
+		for m in [self.upsample, self.convs, self.conv1x1, self.convs_post]:
 			if m is None:
 				continue
 			if hasattr(m, 'weight'):
@@ -106,59 +104,44 @@ class SemSegHead(nn.Module):
 					m.weight, mode='fan_out', nonlinearity='relu')
 				nn.init.constant_(m.bias, 0)
 
-	@auto_fp16()
+
 	def forward(self, feats, outs):
 		x = feats[self.input_index]
-		for conv in self.convs:
-			x = conv(x)
+		x = self.convs(x)
 		if self.upsample is not None:
-			x = self.upsample(x)
 			if self.upsample_method == 'deconv':
+				x = self.upsample(x)
 				x = self.relu(x)
-		mask_pred = self.conv_logits(x)
+			else:
+				x = F.interpolate(x, 
+								size=self.in_channels,
+								mode=self.upsample_method,
+								align_corners=True)
+		x = self.convs_post(x)
+		out_proto = self.conv1x1(x)
+		import ipdb; ipdb.set_trace()
+		return out_proto
 
-		new_outs = []
-		for i,out in enumerate(outs[0]):
-			# _pool = nn.AdaptiveAvgPool2d((out.shape[2],out.shape[3]))
-			# _convs = ConvModule(
-			# 			out.shape[1]+1,
-			# 			out.shape[1],
-			# 			kernel_size=4, 
-			# 			stride=2,
-			# 			padding=1)
-			## try interpolate
-			out_cls_scale = torch.cat((out, F.interpolate(mask_pred,size=(out.shape[2],out.shape[3]), mode='nearest')), dim=1)
-			# out_cls_scale = torch.cat((out, _pool(mask_pred)), dim=1)
-			# out_cls = _convs(out_cls_scale.float().cpu())
-			out_cls = self._convs(out_cls_scale)
-			new_outs.append(out_cls)
 
-		return mask_pred, new_outs
-
-	@force_fp32(apply_to=('mask_pred','new_outs','bbox_preds'))
-	def loss(self, mask_pred, mask_targets, new_outs, bbox_preds, extra_data):
+	@force_fp32(apply_to=('out_proto','outs','bbox_preds'))
+	def loss(self, out_proto, outs, bbox_preds, extra_data):
 		# Flatten tensor
-		num_classes = mask_pred.shape[1]
-		mask_pred = mask_pred.permute(0, 2, 3, 1).reshape(-1, num_classes)
-		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, num_classes)
 
-		# featmap_sizes = [featmap.size()[-2:] for featmap in new_outs]
-		# all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
-		# 								   bbox_preds[0].device)
-		# labels, _, _ = self.polar_target(all_level_points, extra_data)
-		# flatten_cls = [cls_score.permute(0, 2, 3, 1).reshape(-1, 80) for cls_score in new_outs]
-		# flatten_cls_scores = torch.cat(flatten_cls)
-		# flatten_labels = torch.cat(labels).long() 
-		# pos_inds = flatten_labels.nonzero().reshape(-1)
-		# num_pos = len(pos_inds)
-		# num_imgs = new_outs[0].size(0)
-		# # import ipdb; ipdb.set_trace()
+		featmap_sizes = [featmap.size()[-2:] for featmap in outs]
+		all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
+										   bbox_preds[0].device)
+		labels, _, _ = self.polar_target(all_level_points, extra_data)
+		flatten_cls = [cls_score.permute(0, 2, 3, 1).reshape(-1, 80) for cls_score in outs]
+		flatten_cls_scores = torch.cat(flatten_cls)
+		flatten_labels = torch.cat(labels).long() 
+		pos_inds = flatten_labels.nonzero().reshape(-1)
+		num_pos = len(pos_inds)
+		num_imgs = outs[0].size(0)
+
 		# Compute loss
-		loss_semseg = self.loss_mask(mask_pred, mask_targets)
-		# loss_combine = self.loss_cls_combine(flatten_cls_scores, flatten_labels, avg_factor=num_pos + num_imgs)
+		loss_combine_protonet = self.loss_combine_protonet(flatten_cls_scores, flatten_labels, avg_factor=num_pos + num_imgs)
 
-		# return {'loss_semseg': loss_semseg}, {'loss_combine_cls_seg':loss_combine}
-		
+		return {'loss_combine_protonet':loss_combine_protonet}
 
 	def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
 		if rescale:

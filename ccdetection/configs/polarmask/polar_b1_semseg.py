@@ -12,10 +12,23 @@ if ('184' in gethostname()) or ('185' in gethostname()):
 	data_root = '/home/member/Workspace/dataset/coco/'
 	work_dir = '/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/'
 	load_from = '/home/member/Workspace/phase3/polar-B1-FPN/epoch_9.pth'
-	fp16 = dict(loss_scale=512.)
+	# fp16 = dict(loss_scale=512.)
 
 # Debug
 debug = False
+
+use_gn = False
+lr_start = 1e-2
+lr_end = 1e-4
+imgs_per_gpu = 6
+total_epochs = 12
+resume_from = None
+pretrained = None
+img_scale = (1280, 768)
+data_root = '../datasets/coco/'
+work_dir = './work_dirs/polar-B1-FPN-SemSeg_ft1'
+load_from = './work_dirs/polar-B1-FPN-SemSeg/epoch_12.pth'
+# fp16 = dict(loss_scale=512.)
 
 step = [8, 11]
 log_interval = 20
@@ -97,6 +110,16 @@ model = dict(
 		upsample_ratio=2,
 		num_classes=1,
 		loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+	),
+	yolact_proto_head=dict(
+		type='YolactProtoHead',
+		num_convs=3,
+		in_channels=fpn_channels,
+		conv_kernel_size=3,
+		conv_out_channels=fpn_channels,
+		input_index=0,
+		upsample_method='bilinear',
+		upsample_ratio=2,
 	),
 )
 
@@ -219,7 +242,7 @@ log_config = dict(
 
 # yapf:enable
 # runtime settings
-device_ids = range(4)
+device_ids = range(1)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 workflow = [('train', 1)]

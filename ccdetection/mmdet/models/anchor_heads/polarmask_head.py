@@ -252,7 +252,7 @@ class PolarMask_Head(nn.Module):
 									for points in all_level_points])  # [num_pixel,2]
 		pos_inds = flatten_labels.nonzero().reshape(-1)
 		num_pos = len(pos_inds)
-
+		# import ipdb; ipdb.set_trace()
 		loss_cls = self.loss_cls(
 			flatten_cls_scores, flatten_labels,
 			avg_factor=num_pos + num_imgs)  # avoid num_pos is 0

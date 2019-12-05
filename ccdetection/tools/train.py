@@ -1,7 +1,7 @@
 from __future__ import division
 import argparse
 import os
-
+CUDA_LAUNCH_BLOCKING=1
 import torch
 from mmcv import Config
 
