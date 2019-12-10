@@ -132,7 +132,6 @@ class SemSegHead(nn.Module):
 			# out_cls = _convs(out_cls_scale.float().cpu())
 			out_cls = self._convs(out_cls_scale)
 			new_outs.append(out_cls)
-
 		return mask_pred, new_outs
 
 	@force_fp32(apply_to=('mask_pred','new_outs','bbox_preds'))
@@ -152,13 +151,13 @@ class SemSegHead(nn.Module):
 		# pos_inds = flatten_labels.nonzero().reshape(-1)
 		# num_pos = len(pos_inds)
 		# num_imgs = new_outs[0].size(0)
-		# # import ipdb; ipdb.set_trace()
+		# import ipdb; ipdb.set_trace()
 		# Compute loss
 		loss_semseg = self.loss_mask(mask_pred, mask_targets)
 		# loss_combine = self.loss_cls_combine(flatten_cls_scores, flatten_labels, avg_factor=num_pos + num_imgs)
 
 		# return {'loss_semseg': loss_semseg}, {'loss_combine_cls_seg':loss_combine}
-		
+		return {'loss_semseg': loss_semseg}
 
 	def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
 		if rescale:

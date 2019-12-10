@@ -27,12 +27,7 @@ class YolactProtoHead(nn.Module):
 				num_classes=1,
 				conv_cfg=None,
 				norm_cfg=None,
-				loss_combine_protonet=dict(
-					 type='FocalLoss',
-					 use_sigmoid=True,
-					 gamma=2.0,
-					 alpha=0.25,
-					 loss_weight=1.0),
+				loss_combine_protonet=dict(type='CrossEntropyLoss', loss_weight=1.0),
 				strides=(4, 8, 16, 32, 64),
 				regress_ranges=((-1, 64), (64, 128), (128, 256), (256, 512),(512, INF)),
 
@@ -52,7 +47,6 @@ class YolactProtoHead(nn.Module):
 		self.norm_cfg = norm_cfg
 		self.fp16_enabled = False
 		self.convs = nn.ModuleList()
-		
 		self.loss_combine_protonet = build_loss(loss_combine_protonet)
 
 		for i in range(self.num_convs):
@@ -104,114 +98,129 @@ class YolactProtoHead(nn.Module):
 					m.weight, mode='fan_out', nonlinearity='relu')
 				nn.init.constant_(m.bias, 0)
 
+				nn.init.constant_(m.bias, 0)
 
-	def forward(self, feats, outs):
+	@auto_fp16()
+	def forward(self, feats):
 		x = feats[self.input_index]
-		x = self.convs(x)
-		if self.upsample is not None:
-			if self.upsample_method == 'deconv':
-				x = self.upsample(x)
-				x = self.relu(x)
-			else:
-				x = F.interpolate(x, 
-								size=self.in_channels,
-								mode=self.upsample_method,
-								align_corners=True)
-		x = self.convs_post(x)
+
+		for conv in self.convs:
+			x = conv(x)
+		if self.upsample_method == 'deconv':
+			x = self.upsample(x)
+			x = self.relu(x)
+		else:
+			x = F.interpolate(x, 
+							size=self.in_channels,
+							mode=self.upsample_method,
+							align_corners=True)
+		
+		for conv in self.convs_post:
+			x = conv(x)
 		out_proto = self.conv1x1(x)
-		import ipdb; ipdb.set_trace()
+
 		return out_proto
 
 
-	@force_fp32(apply_to=('out_proto','outs','bbox_preds'))
-	def loss(self, out_proto, outs, bbox_preds, extra_data):
+	@force_fp32(apply_to=('out_mask','outs_coff','mask_targets'))
+	def loss(self, mask_targets, out_mask, outs_coff, extra_data):
 		# Flatten tensor
-
-		featmap_sizes = [featmap.size()[-2:] for featmap in outs]
-		all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
-										   bbox_preds[0].device)
-		labels, _, _ = self.polar_target(all_level_points, extra_data)
-		flatten_cls = [cls_score.permute(0, 2, 3, 1).reshape(-1, 80) for cls_score in outs]
-		flatten_cls_scores = torch.cat(flatten_cls)
-		flatten_labels = torch.cat(labels).long() 
-		pos_inds = flatten_labels.nonzero().reshape(-1)
-		num_pos = len(pos_inds)
-		num_imgs = outs[0].size(0)
+		# outs_new = [] 
+		# for out_coff in outs_coff:
+		# 	out_coff_resize = F.interpolate(out_coff,
+		# 								size=(out_mask.shape[2],out_mask.shape[3]),
+		# 								mode=self.upsample_method)
+		# 	out = torch.matmul(out_mask,out_coff_resize)
+		# 	torch.tanh(out)
+		# 	outs_new.append(out)
+		out_coff = outs_coff[0] 		
+		out_coff_resize = F.interpolate(out_coff,
+							size=(out_mask.shape[2],out_mask.shape[3]),
+							mode=self.upsample_method)
+		out = torch.matmul(out_mask,out_coff_resize)
+		out_new = torch.mean(torch.tanh(out), dim=1, keepdim=True)
+		out_new = F.interpolate(out_new,
+							size=(mask_targets.shape[2],mask_targets.shape[3]),
+							mode=self.upsample_method)
+		# import ipdb; ipdb.set_trace()
+		mask_pred = out_new.permute(0, 2, 3, 1).reshape(-1, 1)
+		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, 1)
+		
 
 		# Compute loss
-		loss_combine_protonet = self.loss_combine_protonet(flatten_cls_scores, flatten_labels, avg_factor=num_pos + num_imgs)
+		loss_combine_protonet = self.loss_combine_protonet(mask_pred, mask_targets)
 
 		return {'loss_combine_protonet':loss_combine_protonet}
 
-	def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
-		if rescale:
-			mask_pred = F.interpolate(mask_pred, size=ori_shape[:2], mode='bilinear', align_corners=True)
+	# def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
+	# 	if rescale:
+	# 		mask_pred = F.interpolate(mask_pred, size=ori_shape[:2], mode='bilinear', align_corners=True)
 
-		mask_pred = mask_pred.sigmoid().cpu().numpy()
-		mask_pred = (mask_pred > threshold).astype('uint8')
-		return mask_pred
+	# 	mask_pred = mask_pred.sigmoid().cpu().numpy()
+	# 	mask_pred = (mask_pred > threshold).astype('uint8')
+	# 	return mask_pred
 
-	def polar_target(self, points, extra_data):
-		assert len(points) == len(self.regress_ranges)
+	# def polar_target(self, points, extra_data):
+	# 	assert len(points) == len(self.regress_ranges)
 
-		num_levels = len(points)
+	# 	num_levels = len(points)
 
-		labels_list, bbox_targets_list, mask_targets_list = extra_data.values()
+	# 	labels_list, bbox_targets_list, mask_targets_list = extra_data.values()
 
-		# split to per img, per level
-		num_points = [center.size(0) for center in points]
-		labels_list = [labels.split(num_points, 0) for labels in labels_list]
-		bbox_targets_list = [
-			bbox_targets.split(num_points, 0)
-			for bbox_targets in bbox_targets_list
-		]
-		mask_targets_list = [
-			mask_targets.split(num_points, 0)
-			for mask_targets in mask_targets_list
-		]
+	# 	# split to per img, per level
+	# 	num_points = [center.size(0) for center in points]
+	# 	labels_list = [labels.split(num_points, 0) for labels in labels_list]
+	# 	bbox_targets_list = [
+	# 		bbox_targets.split(num_points, 0)
+	# 		for bbox_targets in bbox_targets_list
+	# 	]
+	# 	mask_targets_list = [
+	# 		mask_targets.split(num_points, 0)
+	# 		for mask_targets in mask_targets_list
+	# 	]
 
-		# concat per level image
-		concat_lvl_labels = []
-		concat_lvl_bbox_targets = []
-		concat_lvl_mask_targets = []
-		for i in range(num_levels):
-			concat_lvl_labels.append(
-				torch.cat([labels[i] for labels in labels_list]))
-			concat_lvl_bbox_targets.append(
-				torch.cat(
-					[bbox_targets[i] for bbox_targets in bbox_targets_list]))
-			concat_lvl_mask_targets.append(
-				torch.cat(
-					[mask_targets[i] for mask_targets in mask_targets_list]))
+	# 	# concat per level image
+	# 	concat_lvl_labels = []
+	# 	concat_lvl_bbox_targets = []
+	# 	concat_lvl_mask_targets = []
+	# 	for i in range(num_levels):
+	# 		concat_lvl_labels.append(
+	# 			torch.cat([labels[i] for labels in labels_list]))
+	# 		concat_lvl_bbox_targets.append(
+	# 			torch.cat(
+	# 				[bbox_targets[i] for bbox_targets in bbox_targets_list]))
+	# 		concat_lvl_mask_targets.append(
+	# 			torch.cat(
+	# 				[mask_targets[i] for mask_targets in mask_targets_list]))
 
-		return concat_lvl_labels, concat_lvl_bbox_targets, concat_lvl_mask_targets
+	# 	return concat_lvl_labels, concat_lvl_bbox_targets, concat_lvl_mask_targets
 
 
-	def get_points(self, featmap_sizes, dtype, device):
-		"""Get points according to feature map sizes.
+	# def get_points(self, featmap_sizes, dtype, device):
+	# 	"""Get points according to feature map sizes.
 
-		Args:
-			featmap_sizes (list[tuple]): Multi-level feature map sizes.
-			dtype (torch.dtype): Type of points.
-			device (torch.device): Device of points.
+	# 	Args:
+	# 		featmap_sizes (list[tuple]): Multi-level feature map sizes.
+	# 		dtype (torch.dtype): Type of points.
+	# 		device (torch.device): Device of points.
 
-		Returns:
-			tuple: points of each image.
-		"""
-		mlvl_points = []
-		for i in range(len(featmap_sizes)):
-			mlvl_points.append(
-				self.get_points_single(featmap_sizes[i], self.strides[i],
-									   dtype, device))
-		return mlvl_points
+	# 	Returns:
+	# 		tuple: points of each image.
+	# 	"""
+	# 	mlvl_points = []
+	# 	for i in range(len(featmap_sizes)):
+	# 		mlvl_points.append(
+	# 			self.get_points_single(featmap_sizes[i], self.strides[i],
+	# 								   dtype, device))
+	# 	return mlvl_points
 
-	def get_points_single(self, featmap_size, stride, dtype, device):
-		h, w = featmap_size
-		x_range = torch.arange(
-			0, w * stride, stride, dtype=dtype, device=device)
-		y_range = torch.arange(
-			0, h * stride, stride, dtype=dtype, device=device)
-		y, x = torch.meshgrid(y_range, x_range)
-		points = torch.stack(
-			(x.reshape(-1), y.reshape(-1)), dim=-1) + stride // 2
-		return points
+	# def get_points_single(self, featmap_size, stride, dtype, device):
+	# 	h, w = featmap_size
+	# 	x_range = torch.arange(
+	# 		0, w * stride, stride, dtype=dtype, device=device)
+	# 	y_range = torch.arange(
+	# 		0, h * stride, stride, dtype=dtype, device=device)
+	# 	y, x = torch.meshgrid(y_range, x_range)
+	# 	points = torch.stack(
+	# 		(x.reshape(-1), y.reshape(-1)), dim=-1) + stride // 2
+	# 	return points

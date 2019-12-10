@@ -20,24 +20,25 @@ debug = False
 use_gn = False
 lr_start = 1e-2
 lr_end = 1e-4
-imgs_per_gpu = 6
+imgs_per_gpu = 4
 total_epochs = 12
 resume_from = None
 pretrained = None
 img_scale = (1280, 768)
 data_root = '../datasets/coco/'
-work_dir = './work_dirs/polar-B1-FPN-SemSeg_ft1'
+work_dir = './work_dirs/polar-B1-FPN-SemSeg_ft2'
 load_from = './work_dirs/polar-B1-FPN-SemSeg/epoch_12.pth'
-# fp16 = dict(loss_scale=512.)
+fp16 = dict(loss_scale=512.)
 
 step = [8, 11]
-log_interval = 20
+log_interval = 1
 warmup_iters = 500
 num_samples = None
 size_divisor = 128
 workers_per_gpu = 6
 ckpt_interval = 1
 train_ann_file = data_root + 'annotations/instances_train2017.json'
+# train_ann_file = data_root + '1image.json'
 val_ann_file = data_root + 'annotations/instances_val2017.json'
 test_ann_file = data_root + 'annotations/instances_val2017.json'
 train_img_prefix = data_root + 'images/train2017/'
@@ -99,27 +100,29 @@ model = dict(
 		loss_centerness=dict(
 			type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
 	),
-	semseg_head=dict(
-		type='SemSegHead',
-		num_convs=4,
-		in_channels=fpn_channels,
-		conv_kernel_size=3,
-		conv_out_channels=fpn_channels,
-		input_index=0,
-		upsample_method='bilinear',
-		upsample_ratio=2,
-		num_classes=1,
-		loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-	),
+	semseg_head=None,
+	# semseg_head=dict(
+	# 	type='SemSegHead',
+	# 	num_convs=4,
+	# 	in_channels=fpn_channels,
+	# 	conv_kernel_size=3,
+	# 	conv_out_channels=fpn_channels,
+	# 	input_index=0,
+	# 	upsample_method='bilinear',
+	# 	upsample_ratio=2,
+	# 	num_classes=1,
+	# 	loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+	# ),
 	yolact_proto_head=dict(
 		type='YolactProtoHead',
 		num_convs=3,
 		in_channels=fpn_channels,
 		conv_kernel_size=3,
-		conv_out_channels=fpn_channels,
+		conv_out_channels=32,
 		input_index=0,
 		upsample_method='bilinear',
 		upsample_ratio=2,
+		loss_combine_protonet=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
 	),
 )
 

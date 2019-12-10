@@ -27,7 +27,8 @@ class PolarMask(SingleStageDetector):
 
 		super(PolarMask, self).__init__(backbone, neck, bbox_head, train_cfg,
 								   test_cfg, pretrained)
-		self.semseg_head = builder.build_head(semseg_head)
+		if semseg_head is not None:
+			self.semseg_head = builder.build_head(semseg_head)
 		self.yolact_proto_head = builder.build_head(yolact_proto_head)
 		self.init_weights(pretrained=pretrained)
 
@@ -76,7 +77,7 @@ class PolarMask(SingleStageDetector):
 
 		x = self.extract_feat(img)
 		outs = self.bbox_head(x)
-		loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
+		loss_inputs = outs[:][:4] + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
 
 		losses = self.bbox_head.loss(
 			*loss_inputs,
@@ -87,18 +88,38 @@ class PolarMask(SingleStageDetector):
 
 		if self.with_semseg:
 			mask_pred, new_outs_cls = self.semseg_head(x, outs)
-			# loss_semseg, loss_combine_cls_seg = self.semseg_head.loss(mask_pred, gt_fg_mask, new_outs_cls, outs[1], extra_data)
-			loss_cls_combine 
+			# loss_semseg, loss_combine_cls = self.semseg_head.loss(mask_pred, 
+			# 														gt_fg_mask, 
+			# 														new_outs_cls, 
+			# 														outs[1], 
+			# 														extra_data
+			#														)
+			loss_semseg = self.semseg_head.loss(mask_pred, 
+												gt_fg_mask, 
+												new_outs_cls, 
+												outs[1], 
+												extra_data
+												) 
 			losses.update(loss_semseg)
-			# losses.update(loss_combine_cls_seg)
+			# losses.update(loss_combine_cls)
 
+		if self.yolact_proto_head:
+			proto_mask = self.yolact_proto_head(x)
+			loss_proto_mask = self.yolact_proto_head.loss(
+														  gt_fg_mask, 
+														  proto_mask,
+														  outs[:][4], 
+														  extra_data
+														  )
+			losses.update(loss_proto_mask)
 		return losses
 
 	def simple_test(self, img, img_meta, rescale=False):
 		x = self.extract_feat(img)
 		outs = self.bbox_head(x)
+		# import ipdb; ipdb.set_trace()
+		bbox_inputs = outs[:4] + (img_meta, self.test_cfg, rescale)
 
-		bbox_inputs = outs + (img_meta, self.test_cfg, rescale)
 		bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
 
 		results = [
