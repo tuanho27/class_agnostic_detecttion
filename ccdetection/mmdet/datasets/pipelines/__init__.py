@@ -9,6 +9,10 @@ from .transforms import (Albu, Expand, MinIoURandomCrop, Normalize, Pad,
 
 from .pose_pipeline import LoadPoseAnnotations, PoseFormatBundle
 
+from .augmentation import (ObjDetAugmentation, ColorAutoAugmentation, 
+                                                StyleAugmentation, Corruption)
+from .polarmask_pipeline import GenExtraPolarAnnotation
+
 __all__ = [
     'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
     'Transpose', 'Collect', 'LoadAnnotations', 'LoadImageFromFile',
@@ -16,5 +20,7 @@ __all__ = [
     'RandomCrop', 'Normalize', 'SegResizeFlipPadRescale', 'MinIoURandomCrop',
     'Expand', 'PhotoMetricDistortion', 'Albu',
     # CC added
-    'LoadPoseAnnotations', 'PoseFormatBundle'
+    'LoadPoseAnnotations', 'PoseFormatBundle',
+    'ObjDetAugmentation', 'ColorAutoAugmentation', 'StyleAugmentation','Corruption',
+    'GenExtraPolarAnnotation',
 ]

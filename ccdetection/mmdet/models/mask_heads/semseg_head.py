@@ -119,17 +119,9 @@ class SemSegHead(nn.Module):
 
 		new_outs = []
 		for i,out in enumerate(outs[0]):
-			# _pool = nn.AdaptiveAvgPool2d((out.shape[2],out.shape[3]))
-			# _convs = ConvModule(
-			# 			out.shape[1]+1,
-			# 			out.shape[1],
-			# 			kernel_size=4, 
-			# 			stride=2,
-			# 			padding=1)
-			## try interpolate
-			out_cls_scale = torch.cat((out, F.interpolate(mask_pred,size=(out.shape[2],out.shape[3]), mode='nearest')), dim=1)
-			# out_cls_scale = torch.cat((out, _pool(mask_pred)), dim=1)
-			# out_cls = _convs(out_cls_scale.float().cpu())
+			out_cls_scale = torch.cat((out, F.interpolate(mask_pred,
+										size=(out.shape[2],out.shape[3]), 
+										mode='nearest')), dim=1)
 			out_cls = self._convs(out_cls_scale)
 			new_outs.append(out_cls)
 		return mask_pred, new_outs
@@ -142,8 +134,7 @@ class SemSegHead(nn.Module):
 		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, num_classes)
 
 		# featmap_sizes = [featmap.size()[-2:] for featmap in new_outs]
-		# all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
-		# 								   bbox_preds[0].device)
+		# all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,bbox_preds[0].device)
 		# labels, _, _ = self.polar_target(all_level_points, extra_data)
 		# flatten_cls = [cls_score.permute(0, 2, 3, 1).reshape(-1, 80) for cls_score in new_outs]
 		# flatten_cls_scores = torch.cat(flatten_cls)
@@ -151,13 +142,13 @@ class SemSegHead(nn.Module):
 		# pos_inds = flatten_labels.nonzero().reshape(-1)
 		# num_pos = len(pos_inds)
 		# num_imgs = new_outs[0].size(0)
-		# import ipdb; ipdb.set_trace()
+
 		# Compute loss
 		loss_semseg = self.loss_mask(mask_pred, mask_targets)
 		# loss_combine = self.loss_cls_combine(flatten_cls_scores, flatten_labels, avg_factor=num_pos + num_imgs)
 
-		# return {'loss_semseg': loss_semseg}, {'loss_combine_cls_seg':loss_combine}
 		return {'loss_semseg': loss_semseg}
+		# return {'loss_semseg': loss_semseg}, {'loss_combine_cls_seg':loss_combine}
 
 	def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
 		if rescale:

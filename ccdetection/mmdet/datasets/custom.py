@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from .pipelines import Compose
 from .registry import DATASETS
 # from pyson.utils import memoize
+from instaboost import get_new_data, InstaBoostConfig
 
 @DATASETS.register_module
 class CustomDataset(Dataset):
@@ -40,7 +41,7 @@ class CustomDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
-                 test_mode=False, num_samples=None):
+                 test_mode=False, num_samples=None, instaboost=False):
         # import ipdb; ipdb.set_trace()
         self.ann_file = ann_file
         self.data_root = data_root
@@ -48,7 +49,7 @@ class CustomDataset(Dataset):
         self.seg_prefix = seg_prefix
         self.proposal_file = proposal_file
         self.test_mode = test_mode
-
+        self.instaboost = instaboost
         # join paths if data_root is specified
         if self.data_root is not None:
             if not osp.isabs(self.ann_file):
@@ -139,7 +140,18 @@ class CustomDataset(Dataset):
             
     def prepare_train_img(self, idx):
         img_info = self.img_infos[idx]
-        ann_info = self.get_ann_info(idx)
+        # ann_info = self.get_ann_info(idx)
+             ## adding instaboost augmentation before start data pipeline 
+        if self.instaboost:
+            img = mmcv.imread(osp.join(self.img_prefix, img_info['filename']))
+            img_id = self.img_infos[idx]['id']
+            ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+            ann_info = self.coco.loadAnns(ann_ids)
+            aug_flag = np.random.choice([0,1],p=[0.5,0.5])
+            if aug_flag:
+                ann_info, img = get_new_data(ann_info, img, None, background=None)
+            ann_info = self._parse_ann_info(img_info, ann_info, True)
+
         results = dict(img_info=img_info, ann_info=ann_info)
         if self.proposals is not None:
             results['proposals'] = self.proposals[idx]

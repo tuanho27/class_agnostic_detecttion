@@ -158,6 +158,7 @@ class PolarMask_Head(nn.Module):
         self.polar_mask = nn.Conv2d(self.feat_channels, 36, 3, padding=1)
         self.polar_centerness = nn.Conv2d(self.feat_channels, 1, 3, padding=1)
 		
+        ## add for yolact protonet cofficient  
         self.protonet_mask = nn.Conv2d(self.feat_channels,32,3,padding=1)
 
         self.scales_bbox = nn.ModuleList([Scale(1.0) for _ in self.strides])
@@ -179,7 +180,8 @@ class PolarMask_Head(nn.Module):
         normal_init(self.polar_reg, std=0.01)
         normal_init(self.polar_mask, std=0.01)
         normal_init(self.polar_centerness, std=0.01)
-
+        normal_init(self.protonet_mask, std=0.01)
+        
     def forward(self, feats):
         return multi_apply(self.forward_single, feats, self.scales_bbox, self.scales_mask)
 
@@ -199,6 +201,7 @@ class PolarMask_Head(nn.Module):
         # float to avoid overflow when enabling FP16
         bbox_pred = scale_bbox(self.polar_reg(reg_feat)).float().exp()
 
+        ## add for yolact protonet cofficient 
         # protonet_coff = torch.tanh(scale_bbox(self.protonet_mask(reg_feat)).float().exp())
         protonet_coff = scale_bbox(self.protonet_mask(reg_feat)).float().exp()
 

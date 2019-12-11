@@ -9,10 +9,12 @@ from .auto_classification import AutoAugmentation
 from .auto_detection import distort_image_with_autoaugment
 # from .styleaug import StyleAugmentor
 
+from .styleaug import StyleAugmentor
 import torch
 from torchvision.transforms import ToTensor, ToPILImage
 from imagecorruptions import corrupt
-from ..registry import PIPELINES
+from mmdet.datasets.registry import PIPELINES
+from pycocotools.coco import COCO
 #------------------------------------------------------------------------------
 #Style Augmentation
 #------------------------------------------------------------------------------
@@ -44,7 +46,7 @@ class StyleAugmentation(object):
 @PIPELINES.register_module
 class ObjDetAugmentation(object):
 	def __init__(self, policy='v0'):
-		assert policy in ['v0','v1']
+		assert policy in ['v0']
 		self.policy = policy
 		print("[{}] Initialize with policy {}".format(self.__class__.__name__, policy))
 
@@ -125,3 +127,62 @@ class ColorAutoAugmentation(object):
 	def __repr__(self):
 		return "AutoAugment BDD Policy"
 
+
+#------------------------------------------------------------------------------
+#  ColorAugmentation
+#------------------------------------------------------------------------------
+@PIPELINES.register_module
+class ColorAugmentation(object):
+	"""
+	A simple Augmenter for changing color of image.
+	"""
+	def __init__(self, gamma_range=(0.5, 1.5), noise_delta=10):
+		self.gamma_range = gamma_range
+		self.noise_delta = noise_delta
+
+	def __call__(self, results):
+		img = results['img']
+		# Adjust brightness
+		gamma = np.random.uniform(self.gamma_range[0], self.gamma_range[1])
+		invGamma = 1.0 / gamma
+		table = 255.0 * (np.arange(0, 256) / 255.0) ** invGamma
+		img = cv2.LUT(img.astype(np.uint8), table.astype(np.uint8)).astype(np.float32)
+
+		# Add noise
+		noise = np.random.normal(size=img.shape) * self.noise_delta
+		img += noise
+		img = np.clip(img, 0.0, 255.0)
+		results['img'] = img
+		return results
+ 
+ 
+@PIPELINES.register_module
+class Corruption(object):
+	"""
+	Corrupt image
+	"""
+	def __init__(self,
+				corruption=False,
+				corruption_type=['contrast','defocus_blur','gaussian_blur',
+												'motion_blur','zoom_blur'], 
+				corruption_severity=1):
+		self.corruption = corruption
+		self.corruption_type = corruption_type
+		self.corruption_severity = corruption_severity
+
+	def __call__(self, results):
+		img = results['img']
+		if self.corruption:
+			if type(self.corruption_type) is list: 
+				self.corruption_appl = self.corruption_type[np.random.choice(len(self.corruption_type),1)[0]] 
+				_img = corrupt(
+						img,
+						severity=self.corruption_severity,
+						corruption_name=self.corruption_appl)
+			else:
+				_img = corrupt(
+						img,
+						severity=self.corruption_severity,
+						corruption_name=self.corruption_type)
+		results['img'] = _img
+		return results

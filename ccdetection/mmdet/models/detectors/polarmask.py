@@ -1,15 +1,13 @@
 from ..registry import DETECTORS
 from .single_stage import SingleStageDetector
 import torch.nn as nn
-
 from mmdet.core import bbox2result, bbox_mask2result
 from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
 import time
 import torch
-# from ..utils import ConvModule
-# from ..builder import build_loss
+import torch.nn.functional as F
 
 @DETECTORS.register_module
 class PolarMask(SingleStageDetector):
@@ -25,11 +23,16 @@ class PolarMask(SingleStageDetector):
 				 pretrained=None):
 				# loss_cls_combine=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)):
 
-		super(PolarMask, self).__init__(backbone, neck, bbox_head, train_cfg,
+		super(PolarMask, self).__init__(backbone, neck, bbox_head, train_cfg, 
 								   test_cfg, pretrained)
 		if semseg_head is not None:
 			self.semseg_head = builder.build_head(semseg_head)
-		self.yolact_proto_head = builder.build_head(yolact_proto_head)
+			self.semseg_head.init_weights()
+
+		if yolact_proto_head is not None:
+			self.yolact_proto_head = builder.build_head(yolact_proto_head)
+			self.yolact_proto_head.init_weights()
+
 		self.init_weights(pretrained=pretrained)
 
 	@property
@@ -51,9 +54,6 @@ class PolarMask(SingleStageDetector):
 				self.neck.init_weights()
 
 		self.bbox_head.init_weights()
-
-		if self.with_semseg:
-			self.semseg_head.init_weights()
 
 	def forward_train(self,
 					  img,
@@ -92,26 +92,30 @@ class PolarMask(SingleStageDetector):
 			# 														gt_fg_mask, 
 			# 														new_outs_cls, 
 			# 														outs[1], 
-			# 														extra_data
-			#														)
+			# 														extra_data)
 			loss_semseg = self.semseg_head.loss(mask_pred, 
 												gt_fg_mask, 
 												new_outs_cls, 
 												outs[1], 
-												extra_data
-												) 
+												extra_data) 
 			losses.update(loss_semseg)
 			# losses.update(loss_combine_cls)
 
-		if self.yolact_proto_head:
-			proto_mask = self.yolact_proto_head(x)
-			loss_proto_mask = self.yolact_proto_head.loss(
-														  gt_fg_mask, 
+		if self.yolact_proto_head:			
+			protonet_coff_new = [] 
+			for out in outs[:][4]:
+				if out.shape[2] != outs[:][4][0].shape[2]:
+					out = F.interpolate(out, size=(outs[:][4][0].shape[2],outs[:][4][0].shape[3]), mode="bilinear")
+				protonet_coff_new.append(out)
+			protonet_coff = torch.cat(protonet_coff_new, dim=1)
+
+			proto_mask, protonet_coff_new = self.yolact_proto_head(x, protonet_coff)
+			loss_proto_mask = self.yolact_proto_head.loss(gt_fg_mask, 
 														  proto_mask,
-														  outs[:][4], 
-														  extra_data
-														  )
+														  protonet_coff_new, 
+														  extra_data)
 			losses.update(loss_proto_mask)
+
 		return losses
 
 	def simple_test(self, img, img_meta, rescale=False):
@@ -130,3 +134,14 @@ class PolarMask(SingleStageDetector):
 		mask_results = results[0][1]
 
 		return bbox_results, mask_results
+
+
+@DETECTORS.register_module
+class PolarMaskONNX(PolarMask):
+        """
+                This class is to support exporting into ONNX file, by removing img_me
+        """
+        def forward(self, imgs):
+                x = self.extract_feat(imgs)
+                outs = self.bbox_head(x)
+                return outs

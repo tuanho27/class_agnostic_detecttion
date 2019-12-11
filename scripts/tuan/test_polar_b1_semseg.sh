@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 CONFIG_FILE='ccdetection/configs/polarmask/polar_b1_semseg.py'
-WORK_DIR='./work_dirs/polar-B1-FPN-SemSeg_ft1/'
+WORK_DIR='./work_dirs/polar-B1-FPN-SemSeg_ft2/'
 
-th=12
+th=16
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
 RESULT_FILE="${WORK_DIR}/epoch_${th}.pkl"
 

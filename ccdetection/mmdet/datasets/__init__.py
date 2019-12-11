@@ -1,6 +1,6 @@
 from .builder import build_dataset
 from .cityscapes import CityscapesDataset
-from .coco import CocoDataset
+from .coco import CocoDataset, CocoPolarDataset
 from .custom import CustomDataset
 from .dataset_wrappers import ConcatDataset, RepeatDataset
 from .loader import DistributedGroupSampler, GroupSampler, build_dataloader
@@ -8,9 +8,7 @@ from .registry import DATASETS
 from .voc import VOCDataset
 from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
-# from .augmentation.data_augmentation import ObjDetAugmentation, ColorAutoAugmentation, StyleAugmentation
 from .mpii import MPIIDataset
-from .coco_polar import Coco_Seg_Dataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'VOCDataset',
@@ -18,6 +16,5 @@ __all__ = [
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
     'DATASETS', 'build_dataset',
     # CC Detect
-    # 'ObjDetAugmentation', 'ColorAutoAugmentation', 'StyleAugmentation',
-    'MPIIDataset', 'Coco_Seg_Dataset',
+    'MPIIDataset', 'CocoPolarDataset',
 ]
