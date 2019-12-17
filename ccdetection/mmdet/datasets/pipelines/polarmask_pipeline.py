@@ -263,8 +263,8 @@ class GenExtraPolarAnnotation(object):
             area += fg
             x += fg * (lat + lat1) / 3.0
             y += fg * (lng + lng1) / 3.0
-        x = x / area
-        y = y / area
+        x = x / (area + 10e-8) 
+        y = y / (area + 10e-8)
 
         return [int(x), int(y)]
 

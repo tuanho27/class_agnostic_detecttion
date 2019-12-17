@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from ..registry import LOSSES
-
+from mmdet.core import auto_fp16, force_fp32, mask_target
 
 _euler_num = 2.718281828				# 	euler number
 _pi = 3.14159265						# 	pi
@@ -65,6 +65,7 @@ class RMILoss(nn.Module):
 		self.ignore_index = 255
 
 	def forward(self, logits_4D, labels_4D):
+		logits_4D = logits_4D.float()
 		loss = self.forward_sigmoid(logits_4D, labels_4D)
 		#loss = self.forward_softmax_sigmoid(logits_4D, labels_4D)
 		return loss
@@ -103,6 +104,7 @@ class RMILoss(nn.Module):
 
 		return final_loss
 
+	# @force_fp32()
 	def forward_sigmoid(self, logits_4D, labels_4D):
 		"""
 		Using the sigmiod operation both.
@@ -176,7 +178,8 @@ class RMILoss(nn.Module):
 		n, c = label_shape[0], label_shape[1]
 
 		# combine the high dimension points from label and probability map. new shape [N, C, radius * radius, H, W]
-		la_vectors, pr_vectors = rmi_utils.map_get_pairs(labels_4D, probs_4D, radius=self.rmi_radius, is_combine=0)
+		# la_vectors, pr_vectors = rmi_utils.map_get_pairs(labels_4D, probs_4D, radius=self.rmi_radius, is_combine=0)
+		la_vectors, pr_vectors = map_get_pairs(labels_4D, probs_4D, radius=self.rmi_radius, is_combine=0)
 
 		la_vectors = la_vectors.view([n, c, self.half_d, -1]).type(torch.cuda.DoubleTensor).requires_grad_(False)
 		pr_vectors = pr_vectors.view([n, c, self.half_d, -1]).type(torch.cuda.DoubleTensor)
@@ -209,7 +212,8 @@ class RMILoss(nn.Module):
 		#appro_var = torch.div(appro_var, n_points.type_as(appro_var)) + diag_matrix.type_as(appro_var) * 1e-6
 
 		# The lower bound. If A is nonsingular, ln( det(A) ) = Tr( ln(A) ).
-		rmi_now = 0.5 * rmi_utils.log_det_by_cholesky(appro_var + diag_matrix.type_as(appro_var) * _POS_ALPHA)
+		# rmi_now = 0.5 * rmi_utils.log_det_by_cholesky(appro_var + diag_matrix.type_as(appro_var) * _POS_ALPHA)
+		rmi_now = 0.5 * log_det_by_cholesky(appro_var + diag_matrix.type_as(appro_var) * _POS_ALPHA)
 		#rmi_now = 0.5 * torch.logdet(appro_var + diag_matrix.type_as(appro_var) * _POS_ALPHA)
 
 		# mean over N samples. sum over classes.

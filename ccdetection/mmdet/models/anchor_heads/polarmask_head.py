@@ -227,6 +227,7 @@ class PolarMask_Head(nn.Module):
         assert len(cls_scores) == len(bbox_preds) == len(centernesses) == len(mask_preds)
         featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
         # print("Feature Map size: ",featmap_sizes)
+
         all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
                                            bbox_preds[0].device)
 
@@ -268,7 +269,6 @@ class PolarMask_Head(nn.Module):
         pos_bbox_preds = flatten_bbox_preds[pos_inds]
         pos_centerness = flatten_centerness[pos_inds]
         pos_mask_preds = flatten_mask_preds[pos_inds]
-
         if num_pos > 0:
             pos_bbox_targets = flatten_bbox_targets[pos_inds]
             pos_mask_targets = flatten_mask_targets[pos_inds]
