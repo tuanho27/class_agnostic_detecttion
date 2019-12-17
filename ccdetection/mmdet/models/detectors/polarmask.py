@@ -106,36 +106,14 @@ class PolarMask(SingleStageDetector):
 			# losses.update(loss_combine_cls)
 		# import ipdb; ipdb.set_trace()
 		if self.with_yolact:			
-			protonet_coff_new = [] 
-			for out in outs[:][4]:
-				if out.shape[2] != outs[:][4][0].shape[2]:
-					out = F.interpolate(out, size=(outs[:][4][0].shape[2],outs[:][4][0].shape[3]), mode="bilinear")
-				protonet_coff_new.append(out)
-			protonet_coff = torch.cat(protonet_coff_new, dim=1)
-
-			proto_mask, protonet_coff_new = self.yolact_proto_head(x, protonet_coff)
+			protonet_coff = outs[:][4]
+			proto_mask = self.yolact_proto_head(x, protonet_coff)
 			loss_proto_mask = self.yolact_proto_head.loss(gt_fg_mask, 
 														  proto_mask,
 														  protonet_coff, 
 														  outs[:][1],
 														  outs[:][2],
 														  extra_data)
-
-			## add mask 4D for rmi loss
-			# proto_mask, protonet_coff_new, logit_4D = self.yolact_proto_head(x, protonet_coff, img)
-			# mask_4D = []
-			# for gt_mask, gt_label in zip(gt_masks, gt_labels):
-			# 	for mask, label in zip(gt_mask, gt_label):
-			# 		mask[mask>0] = label.cpu()
-			# 	mask = np.sum(gt_mask,axis=0)
-			# 	mask_4D.append(mask)
-			# mask_4D = torch.from_numpy(np.array(mask_4D).astype(np.long)).cuda()
-			# loss_proto_mask, loss_rmi = self.yolact_proto_head.loss(gt_fg_mask, 
-			# 											  proto_mask,
-			# 											  protonet_coff_new, 
-			# 											  logit_4D, 
-			# 											  mask_4D)
-
 			## update loss
 			losses.update(loss_proto_mask)
 			# losses.update(loss_rmi)
