@@ -19,32 +19,32 @@ debug = False
 use_gn = False
 lr_start = 1e-2
 lr_end = 1e-4
-imgs_per_gpu = 4
-total_epochs = 16 
+imgs_per_gpu = 1
+total_epochs = 30 
 # resume_from = './work_dirs/polar-B1-FPN-SemSeg_ft2/latest.pth'
 resume_from=None
 pretrained = None
 img_scale = (1280, 768)
 data_root = '../datasets/coco/'
-work_dir = './work_dirs/polar-B1-FPN-SemSeg_ft_all'
+work_dir = './work_dirs/polar-B1-FPN-semseg-yolact_ft'
 load_from = './work_dirs/polar-B1-FPN-SemSeg/epoch_12.pth'
 fp16 = dict(loss_scale=512.)
 
 step = [8, 11]
-log_interval = 100
+log_interval = 1
 warmup_iters = 500
 num_samples = None
 size_divisor = 128
 workers_per_gpu = 6
 ckpt_interval = 1
 ## for debuging
-# train_ann_file = data_root + '1image.json'
-# train_img_prefix = data_root + 'images/val2017/'
+train_ann_file = data_root + '1image.json'
+train_img_prefix = data_root + 'images/val2017/'
 
-train_ann_file = data_root + 'annotations/instances_train2017.json'
+# train_ann_file = data_root + 'annotations/instances_train2017.json'
 val_ann_file = data_root + 'annotations/instances_val2017.json'
 test_ann_file = data_root + 'annotations/instances_val2017.json'
-train_img_prefix = data_root + 'images/train2017/'
+# train_img_prefix = data_root + 'images/train2017/'
 val_img_prefix = data_root + 'images/val2017/'
 test_img_prefix = data_root + 'images/val2017/'
 
@@ -116,6 +116,7 @@ model = dict(
 		num_classes=1,
 		loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
 	),
+	# yolact_proto_head=None,
 	yolact_proto_head=dict(
 		type='YolactProtoHead',
 		num_convs=3,
@@ -152,18 +153,48 @@ test_cfg = dict(
 dataset_type = 'CocoPolarDataset'
 img_norm_cfg = dict(
 	mean=[102.9801, 115.9465, 122.7717], std=[1.0, 1.0, 1.0], to_rgb=False)
+albu_train_transforms = [
+    dict(
+        type='ShiftScaleRotate',
+        shift_limit=0.0625,
+        scale_limit=0.0,
+        rotate_limit=0,
+        interpolation=1,
+        p=0.5),
+    dict(
+        type='RandomBrightnessContrast',
+        brightness_limit=[0.1, 0.3],
+        contrast_limit=[0.1, 0.3],
+        p=0.2),
+]
 train_pipeline = [
    dict(type='LoadImageFromFile'),
    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+   dict(type='ObjDetAugmentation'),
 #    dict(type='Corruption', corruption=True),
+#    dict(type='Albumentation',
+        # transforms=albu_train_transforms,
+        # bbox_params=dict(
+            # type='BboxParams',
+            # format='pascal_voc',
+            # label_fields=['gt_labels'],
+            # min_visibility=0.0,
+            # filter_lost_elements=True),
+        # keymap={
+            # 'img': 'image',
+            # 'gt_masks': 'masks',
+            # 'gt_bboxes': 'bboxes'
+        # },
+        # update_pad_shape=False,
+        # skip_img_without_anno=True),
    dict(type='Resize', img_scale=(1280, 768), keep_ratio=False),
-   dict(type='RandomFlip', flip_ratio=0.5),
-   dict(type='Normalize', **img_norm_cfg),
-   dict(type='Pad', size_divisor=32),
-   dict(type='GenExtraPolarAnnotation', with_fg_mask=True, seg_scale_factor=0.25),
-   dict(type='DefaultFormatBundle'),
-   dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks', 
-   							  'gt_fg_mask', '_gt_bboxes', '_gt_labels', '_gt_masks']),
+#    dict(type='RandomFlip', flip_ratio=0.5),
+#    dict(type='Normalize', **img_norm_cfg),
+#    dict(type='Pad', size_divisor=32),
+#    dict(type='GenExtraPolarAnnotation', with_fg_mask=True, seg_scale_factor=0.25),
+#    dict(type='DefaultFormatBundle'),
+#    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks', 
+   							#   'gt_fg_mask', '_gt_bboxes', '_gt_labels', '_gt_masks']),
 ]
 test_pipeline = [
 	dict(type='LoadImageFromFile'),
@@ -181,7 +212,7 @@ test_pipeline = [
 		])
 ]
 data = dict(
-   imgs_per_gpu=4,
+   imgs_per_gpu=imgs_per_gpu,
    workers_per_gpu=4,
    train=dict(
        type=dataset_type,
@@ -226,7 +257,7 @@ log_config = dict(
 
 # yapf:enable
 # runtime settings
-device_ids = range(1)
+device_ids = range(4)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 workflow = [('train', 1)]

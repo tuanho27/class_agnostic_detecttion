@@ -84,6 +84,7 @@ class CustomDataset(Dataset):
             self._set_group_flag()
         # processing pipeline
         self.pipeline = Compose(pipeline)
+        self.prepare_train_img(0)
 
     def __len__(self):
         return len(self.img_infos)
@@ -156,6 +157,28 @@ class CustomDataset(Dataset):
         if self.proposals is not None:
             results['proposals'] = self.proposals[idx]
         self.pre_pipeline(results)
+
+        # ### For visualize data after augmentation
+        # from mmdet.apis.inference import show_result
+        # from .coco import CocoDataset
+        # import cv2
+        
+        # results = self.pipeline(results)
+        # print(results.keys())
+        # out_file = './work_dirs/test_dataset.jpg'
+        # # img = results['img']
+        # img = mmcv.imread(osp.join(self.img_prefix, img_info['filename']))
+        # bboxes = results['gt_bboxes']
+        # score = np.ones(18)
+        # bboxes = np.concatenate((bboxes,score.reshape(1,18).T),axis=1)
+        # masks = results['gt_masks']
+        # gt_result = bboxes, masks
+        # # cv2.imwrite(out_file, img)
+        # # image = cv2.add(img, masks)
+        # cv2.imwrite(out_file, masks)
+        # import ipdb; ipdb.set_trace()
+        # show_result(img, gt_result, results['gt_labels'], CocoDataset.CLASSES,show=False, out_file=out_file)
+        # return 0
         return self.pipeline(results)
 
     def prepare_test_img(self, idx):

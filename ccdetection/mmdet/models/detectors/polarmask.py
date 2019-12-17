@@ -38,7 +38,8 @@ class PolarMask(SingleStageDetector):
 	@property
 	def with_semseg(self):
 		return hasattr(self, 'semseg_head') and self.semseg_head is not None
-
+	
+	@property
 	def with_yolact(self):
 		return hasattr(self, 'yolact_proto_head') and self.yolact_proto_head is not None
 
@@ -100,8 +101,8 @@ class PolarMask(SingleStageDetector):
 												extra_data) 
 			losses.update(loss_semseg)
 			# losses.update(loss_combine_cls)
-
-		if self.yolact_proto_head:			
+		# import ipdb; ipdb.set_trace()
+		if self.with_yolact:			
 			protonet_coff_new = [] 
 			for out in outs[:][4]:
 				if out.shape[2] != outs[:][4][0].shape[2]:

@@ -664,7 +664,7 @@ class MinIoURandomCrop(object):
 
 
 @PIPELINES.register_module
-class Albu(object):
+class Albumentation(object):
 
     def __init__(self,
                  transforms,

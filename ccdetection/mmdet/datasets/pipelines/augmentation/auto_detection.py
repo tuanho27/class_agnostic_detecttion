@@ -5,13 +5,14 @@
 #------------------------------------------------------------------------------
 import torch
 import torchvision
+import inspect
 
 import cv2
 import PIL
 import inspect
 import numpy as np
 from PIL import Image
-
+from pyson.utils import multi_thread
 
 from collections import namedtuple
 Hparams = namedtuple('Hparams',
@@ -39,7 +40,9 @@ def policy_vtest():
 	# (operation, probability, magnitude). Each element in policy is a
 	# sub-policy that will be applied sequentially on the image.
 	policy = [
-		[('ShearY_BBox', 1.0, 2), ('TranslateY_Only_BBoxes', 0.6, 6)],
+		[
+			# ('ShearY_BBox', 1.0, 2),
+		],
 	]
 	return policy
 
@@ -50,10 +53,12 @@ def policy_v0():
 	# (operation, probability, magnitude). Each element in policy is a
 	# sub-policy that will be applied sequentially on the image.
 	policy = [
-		[('TranslateX_BBox', 0.6, 4), ('Equalize', 0.8, 10)],
-		[('TranslateY_Only_BBoxes', 0.2, 2), ('Cutout', 0.8, 8)],
-		[('ShearY_BBox', 1.0, 2), ('TranslateY_Only_BBoxes', 0.6, 6)],
-		[('Rotate_BBox', 0.6, 10), ('Color', 1.0, 6)],
+		# [('TranslateX_BBox', 0.6, 4), ('Equalize', 0.8, 10)],
+		# [('TranslateY_Only_BBoxes', 0.2, 2), ('Cutout', 0.8, 8)],
+		[	
+			 ('Cutout_Mask', 1.0, 20)
+		],
+		# [('Rotate_BBox', 0.6, 10), ('Color', 1.0, 6)],
 		# [('Sharpness', 0.0, 8), ('ShearX_BBox', 0.4, 0)],		--> No effect
 	]
 	return policy
@@ -207,7 +212,6 @@ def cutout(image, pad_size, replace=0):
 	"""
 	image_height = image.shape[0]
 	image_width = image.shape[1]
-
 	# Sample the center location in the image where the zero mask will be applied.
 	cutout_center_height = np.random.uniform(size=[], low=0, high=image_height).astype(int)
 	cutout_center_width = np.random.uniform(size=[], low=0, high=image_width).astype(int)
@@ -225,6 +229,56 @@ def cutout(image, pad_size, replace=0):
 	image = np.where(mask==0, (np.ones_like(image)*replace).astype(image.dtype), image)
 	return image
 
+
+#------------------------------------------------------------------------------
+#  cutout w/ mask
+#------------------------------------------------------------------------------
+def cutout_mask(image, masks, pad_size, replace=0):
+	"""Apply cutout (https://arxiv.org/abs/1708.04552) to image.
+
+	This operation applies a (2*pad_size x 2*pad_size) mask of zeros to
+	a random location within `img`. The pixel values filled in will be of the
+	value `replace`. The located where the mask will be applied is randomly
+	chosen uniformly over the whole image.
+
+	Args:
+	image: An image Tensor of type uint8.
+	pad_size: Specifies how big the zero mask that will be generated is that
+		is applied to the image. The mask will be of size
+		(2*pad_size x 2*pad_size).
+	replace: What pixel value to fill in the image in the area that has
+		the cutout mask applied to it.
+
+	Returns:
+	An image Tensor that is of type uint8.
+	"""
+	image_height = image.shape[0]
+	image_width = image.shape[1]
+	# Sample the center location in the image where the zero mask will be applied.
+	cutout_center_height = np.random.uniform(size=[], low=0, high=image_height).astype(int)
+	cutout_center_width = np.random.uniform(size=[], low=0, high=image_width).astype(int)
+
+	lower_pad = max(0, cutout_center_height - pad_size)
+	upper_pad = max(0, image_height - cutout_center_height - pad_size)
+	left_pad = max(0, cutout_center_width - pad_size)
+	right_pad = max(0, image_width - cutout_center_width - pad_size)
+
+	cutout_shape = [image_height - (lower_pad + upper_pad), image_width - (left_pad + right_pad)]
+	padding_dims = [[lower_pad, upper_pad], [left_pad, right_pad]]
+	mask = np.pad(np.zeros(cutout_shape, dtype=image.dtype), padding_dims, mode='constant', constant_values=1)
+	aug_masks = []
+	for i in range(len(masks)):
+		color_mask = np.random.randint(0, 256, (1, 3), dtype=np.uint8)
+		mask_i = masks[i].astype(np.bool) 
+		mask_i = np.logical_and(mask_i,mask)
+		aug_masks.append(mask_i)
+		# image[mask_i,:] = image[mask_i,:] * 0.5 + color_mask * 0.5
+
+	mask = np.expand_dims(mask, -1)
+	mask = np.tile(mask, [1, 1, 3])
+	image = np.where(mask==0, (np.ones_like(image)*replace).astype(image.dtype), image)
+
+	return image, aug_masks
 
 #------------------------------------------------------------------------------
 #  solarize
@@ -510,7 +564,7 @@ def _scale_bbox_only_op_probability(prob):
 #------------------------------------------------------------------------------
 #  _apply_bbox_augmentation
 #------------------------------------------------------------------------------
-def _apply_bbox_augmentation(image, bbox, augmentation_func, *args):
+def _apply_bbox_augmentation(image, bbox, masks, augmentation_func, *args):
 	"""Applies augmentation_func to the subsection of image indicated by bbox.
 
 	Args:
@@ -526,6 +580,7 @@ def _apply_bbox_augmentation(image, bbox, augmentation_func, *args):
 		A modified version of image, where the bbox location in the image will
 		have `ugmentation_func applied to it.
 	"""
+
 	image_height = image.shape[0]
 	image_width = image.shape[1]
 	min_y = int(image_height * bbox[0])
@@ -539,26 +594,40 @@ def _apply_bbox_augmentation(image, bbox, augmentation_func, *args):
 	max_y = np.minimum(max_y, image_height-1)
 	max_x = np.minimum(max_x, image_width-1)
 
-	# Get the sub-tensor that is the image within the bounding box region.
-	bbox_content = image[min_y:max_y+1, min_x:max_x+1, :]
+	mask_tensor_template = np.zeros([max_y-min_y+1, max_x-min_x+1, 3], dtype=image.dtype)
+	def do(image, mask_constant=1):
 
-	# Apply the augmentation function to the bbox portion of the image.
-	augmented_bbox_content = augmentation_func(bbox_content, *args)
+		image_l = len(image.shape)
+		if image_l==2:
+			image = np.stack([image]*3, axis=-1)
+		# Get the sub-tensor that is the image within the bounding box region.
+		bbox_content = image[min_y:max_y+1, min_x:max_x+1, :]
+		# import ipdb; ipdb.set_trace()
+		augmented_bbox_content = augmentation_func(bbox_content, *args)
 
-	# Pad the augmented_bbox_content and the mask to match the shape of original image.
-	augmented_bbox_content = np.pad(augmented_bbox_content,
-		[[min_y, (image_height - 1) - max_y], [min_x, (image_width - 1) - max_x], [0, 0]],
-		mode='constant', constant_values=0)
+		# Pad the augmented_bbox_content and the mask to match the shape of original image.
+		augmented_bbox_content = np.pad(augmented_bbox_content,
+			[[min_y, (image_height - 1) - max_y], [min_x, (image_width - 1) - max_x], [0, 0]],
+			mode='constant', constant_values=0)
 
-	# Create a mask that will be used to zero out a part of the original image.
-	mask_tensor = np.zeros_like(bbox_content)
-	mask_tensor = np.pad(mask_tensor,
-		[[min_y, (image_height-1) - max_y], [min_x, (image_width - 1) - max_x], [0, 0]],
-		mode='constant', constant_values=1)
+		# Create a mask that will be used to zero out a part of the original image.
+		mask_tensor = mask_tensor_template*0#np.zeros_like(bbox_content)
+		mask_tensor = np.pad(mask_tensor,
+			[[min_y, (image_height-1) - max_y], [min_x, (image_width - 1) - max_x], [0, 0]],
+			mode='constant', constant_values=mask_constant)
 
-	# Replace the old bbox content with the new augmented content.
-	image = image * mask_tensor + augmented_bbox_content
-	return image
+		# Replace the old bbox content with the new augmented content.
+		image = image * mask_tensor + augmented_bbox_content
+		if image_l==2:
+			return image[:,:,0]
+		else: 
+			return image
+
+	image = do(image)
+	masks = [np.stack([_]*3, -1) for _ in masks]
+	masks = multi_thread(do, masks, verbose=0, max_workers=4)
+	masks = [_[:,:,0] for _ in masks]
+	return image, masks
 
 
 #------------------------------------------------------------------------------
@@ -582,7 +651,7 @@ def _concat_bbox(bbox, bboxes):
 #------------------------------------------------------------------------------
 #  _apply_bbox_augmentation_wrapper
 #------------------------------------------------------------------------------
-def _apply_bbox_augmentation_wrapper(image, bbox, new_bboxes, prob, augmentation_func, func_changes_bbox, *args):
+def _apply_bbox_augmentation_wrapper(image, bbox, new_bboxes, masks, prob, augmentation_func, func_changes_bbox, *args):
 	"""Applies _apply_bbox_augmentation with probability prob.
 
 	Args:
@@ -613,24 +682,26 @@ def _apply_bbox_augmentation_wrapper(image, bbox, new_bboxes, prob, augmentation
 
 	if func_changes_bbox:
 		if should_apply_op:
-			augmented_image, bbox = augmentation_func(image, bbox, *args)
+			augmented_image, bbox, augmented_masks = augmentation_func(image, bbox, masks, *args)
 		else:
-			augmented_image, bbox = image, bbox
+			augmented_image, bbox, augmented_masks = image, bbox, masks
 
 	else:
 		if should_apply_op:
-			augmented_image = _apply_bbox_augmentation(image, bbox, augmentation_func, *args)
+			augmented_image, augmented_masks = _apply_bbox_augmentation(image, bbox, masks, augmentation_func, *args)
+			# augmented_masks = [_apply_bbox_augmentation(mask, bbox, augmentation_func, *args) for mask in masks]
 		else:
 			augmented_image = image
+			augmented_masks = masks
 
 	new_bboxes = _concat_bbox(bbox, new_bboxes)
-	return augmented_image, new_bboxes
+	return augmented_image, new_bboxes, augmented_masks
 
 
 #------------------------------------------------------------------------------
 #  _apply_multi_bbox_augmentation
 #------------------------------------------------------------------------------
-def _apply_multi_bbox_augmentation(image, bboxes, prob, aug_func, func_changes_bbox, *args):
+def _apply_multi_bbox_augmentation(image, bboxes, masks, prob, aug_func, func_changes_bbox, *args):
 	"""Applies aug_func to the image for each bbox in bboxes.
 
 	Args:
@@ -666,8 +737,8 @@ def _apply_multi_bbox_augmentation(image, bboxes, prob, aug_func, func_changes_b
 
 	assert len(bboxes.shape)==2 and bboxes.shape[1]==4
 
-	def wrapped_aug_func(_image, bbox, _new_bboxes):
-		return _apply_bbox_augmentation_wrapper(_image, bbox, _new_bboxes, prob, aug_func, func_changes_bbox, *args)
+	def wrapped_aug_func(_image, bbox, _new_bboxes, _masks):
+		return _apply_bbox_augmentation_wrapper(_image, bbox, _new_bboxes, _masks, prob, aug_func, func_changes_bbox, *args)
 
 	# Setup the while_loop.
 	num_bboxes = bboxes.shape[0]
@@ -684,10 +755,10 @@ def _apply_multi_bbox_augmentation(image, bboxes, prob, aug_func, func_changes_b
 	# Main function of while_loop where we repeatedly apply augmentation on the
 	# bboxes in the image.
 	def body(_idx, _images_and_bboxes):
-		return _idx + 1, wrapped_aug_func(_images_and_bboxes[0], loop_bboxes[_idx], _images_and_bboxes[1])
+		return _idx + 1, wrapped_aug_func(_images_and_bboxes[0], loop_bboxes[_idx], _images_and_bboxes[1], _images_and_bboxes[2])
 
 	while idx < num_bboxes:
-		idx, (image, new_bboxes) = body(idx, (image, new_bboxes))
+		idx, (image, new_bboxes, masks) = body(idx, (image, new_bboxes, masks))
 
 	# Either return the altered bboxes or the original ones depending on if
 	# we altered them in anyway.
@@ -695,17 +766,17 @@ def _apply_multi_bbox_augmentation(image, bboxes, prob, aug_func, func_changes_b
 		final_bboxes = new_bboxes
 	else:
 		final_bboxes = bboxes
-	return image, final_bboxes
+	return image, final_bboxes, masks
 
 
 #------------------------------------------------------------------------------
 #  _apply_multi_bbox_augmentation_wrapper
 #------------------------------------------------------------------------------
-def _apply_multi_bbox_augmentation_wrapper(image, bboxes, prob, aug_func, func_changes_bbox, *args):
+def _apply_multi_bbox_augmentation_wrapper(image, bboxes, masks, prob, aug_func, func_changes_bbox, *args):
 	"""Checks to be sure num bboxes > 0 before calling inner function."""
 	if len(bboxes)!=0:
-		image, bboxes = _apply_multi_bbox_augmentation(image, bboxes, prob, aug_func, func_changes_bbox, *args)
-	return image, bboxes
+		image, bboxes, masks = _apply_multi_bbox_augmentation(image, bboxes, masks, prob, aug_func, func_changes_bbox, *args)
+	return image, bboxes, masks
 
 
 #------------------------------------------------------------------------------
@@ -722,12 +793,12 @@ def rotate_only_bboxes(image, bboxes, prob, degrees, replace):
 #------------------------------------------------------------------------------
 #  shear_x_only_bboxes
 #------------------------------------------------------------------------------
-def shear_x_only_bboxes(image, bboxes, prob, level, replace):
+def shear_x_only_bboxes(image, bboxes, masks, prob, level, replace):
 	"""Apply shear_x to each bbox in the image with probability prob."""
 	func_changes_bbox = False
 	prob = _scale_bbox_only_op_probability(prob)
 	return _apply_multi_bbox_augmentation_wrapper(
-		image, bboxes, prob, shear_x, func_changes_bbox, level, replace)
+		image, bboxes, masks, prob, shear_x, func_changes_bbox, level, replace)
 
 
 #------------------------------------------------------------------------------
@@ -751,6 +822,13 @@ def translate_x_only_bboxes(image, bboxes, prob, pixels, replace):
 	return _apply_multi_bbox_augmentation_wrapper(
 		image, bboxes, prob, translate_x, func_changes_bbox, pixels, replace)
 
+def translate_x_only_bboxes_mask(image, bboxes, masks, prob, pixels, replace):
+	"""Apply translate_x to each bbox in the image with probability prob."""
+	func_changes_bbox = False
+	prob = _scale_bbox_only_op_probability(prob)
+	return _apply_multi_bbox_augmentation_wrapper(
+		image, bboxes, masks, prob, translate_x, func_changes_bbox, pixels, replace)
+
 
 #------------------------------------------------------------------------------
 #  translate_y_only_bboxes
@@ -761,6 +839,26 @@ def translate_y_only_bboxes(image, bboxes, prob, pixels, replace):
 	prob = _scale_bbox_only_op_probability(prob)
 	return _apply_multi_bbox_augmentation_wrapper(
 		image, bboxes, prob, translate_y, func_changes_bbox, pixels, replace)
+
+def translate_y_only_bboxes_mask(image, bboxes, masks, prob, pixels, replace):
+	"""Apply translate_y to each bbox in the image with probability prob."""
+	func_changes_bbox = False
+	prob = _scale_bbox_only_op_probability(prob)
+	return _apply_multi_bbox_augmentation_wrapper(
+		image, bboxes, masks, prob, translate_y, func_changes_bbox, pixels, replace)
+
+
+
+#------------------------------------------------------------------------------
+#  translate_y_only_bboxes
+#------------------------------------------------------------------------------
+def translate_y_only_bboxes_mask(image, bboxes, masks, prob, pixels, replace):
+	"""Apply translate_y to each bbox in the image with probability prob."""
+	func_changes_bbox = False
+	prob = _scale_bbox_only_op_probability(prob)
+	return _apply_multi_bbox_augmentation_wrapper(
+		image, bboxes, masks, prob, translate_y, func_changes_bbox, pixels, replace)
+
 
 
 #------------------------------------------------------------------------------
@@ -896,26 +994,34 @@ def rotate_with_bboxes(image, bboxes, degrees, replace):
 #------------------------------------------------------------------------------
 #  translate_x
 #------------------------------------------------------------------------------
-def translate_x(image, pixels, replace):
+def translate_x(image, pixels, replace, is_wrap=True):
 	"""Equivalent of PIL Translate in X dimension."""
-	image = wrap(image)
+	if is_wrap:#
+		image = wrap(image)#
+	# image = wrap(image)
 	image = Image.fromarray(image)
 	image = image.transform(image.size, Image.AFFINE, tuple([1,0,pixels, 0,1,0]))
 	image = np.array(image)
-	image = unwrap(image, replace)
+	if is_wrap:#
+		image = unwrap(image, replace)#
+	# image = unwrap(image, replace)
 	return image
 
 
 #------------------------------------------------------------------------------
 #  translate_y
 #------------------------------------------------------------------------------
-def translate_y(image, pixels, replace):
+def translate_y(image, pixels, replace, is_wrap=True):
 	"""Equivalent of PIL Translate in Y dimension."""
-	image = wrap(image)
+	if is_wrap:#
+		image = wrap(image)#
+	# image = wrap(image)
 	image = Image.fromarray(image)
 	image = image.transform(image.size, Image.AFFINE, tuple([1,0,0, 0,1,pixels]))
 	image = np.array(image)
-	image = unwrap(image, replace)
+	if is_wrap: #
+		image = unwrap(image, replace) #
+	# image = unwrap(image, replace)
 	return image
 
 
@@ -996,30 +1102,68 @@ def translate_bbox(image, bboxes, pixels, replace, shift_horizontal):
 		bboxes[i,:] = _shift_bbox(bbox, image_height, image_width, pixels, shift_horizontal)
 	return image, bboxes
 
+def translate_bbox_mask(image, bboxes, masks, pixels, replace, shift_horizontal):
+	"""Equivalent of PIL Translate in X/Y dimension that shifts image and bbox.
+
+	Args:
+		image: 3D uint8 Tensor.
+		bboxes: 2D Tensor that is a list of the bboxes in the image. Each bbox
+			has 4 elements (min_y, min_x, max_y, max_x) of type float with values
+			between [0, 1].
+		pixels: An int. How many pixels to shift the image and bboxes
+		replace: A one or three value 1D tensor to fill empty pixels.
+		shift_horizontal: Boolean. If true then shift in X dimension else shift in
+			Y dimension.
+
+	Returns:
+		A tuple containing a 3D uint8 Tensor that will be the result of translating
+		image by pixels. The second element of the tuple is bboxes, where now
+		the coordinates will be shifted to reflect the shifted image.
+	"""
+	if shift_horizontal:
+		image = translate_x(image, pixels, replace)
+		masks = [translate_x(mask, pixels, replace, is_wrap=False) for mask in masks]
+	else:
+		image = translate_y(image, pixels, replace)
+		masks = [translate_y(mask, pixels, replace, is_wrap=False) for mask in masks]
+
+	# Convert bbox coordinates to pixel values.
+	image_height = image.shape[0]
+	image_width  = image.shape[1]
+	for i, bbox in enumerate(bboxes):
+		bboxes[i,:] = _shift_bbox(bbox, image_height, image_width, pixels, shift_horizontal)
+	return image, bboxes, masks
+
 
 #------------------------------------------------------------------------------
 #  shear_x
 #------------------------------------------------------------------------------
-def shear_x(image, level, replace):
+def shear_x(image, level, replace, is_wrap=True):
 	"""Equivalent of PIL Shearing in X dimension."""
-	image = wrap(image)
+	if is_wrap:
+		image = wrap(image)
+
 	image = Image.fromarray(image)
 	image = image.transform(image.size, Image.AFFINE, tuple([1,level,0, 0,1,0]))
 	image = np.array(image)
-	image = unwrap(image, replace)
+
+	if is_wrap:
+		image = unwrap(image, replace)
 	return image
 
 
 #------------------------------------------------------------------------------
 #  shear_y
 #------------------------------------------------------------------------------
-def shear_y(image, level, replace):
+def shear_y(image, level, replace, is_wrap=True):
 	"""Equivalent of PIL Shearing in Y dimension."""
-	image = wrap(image)
+	if is_wrap:
+		image = wrap(image)
 	image = Image.fromarray(image)
 	image = image.transform(image.size, Image.AFFINE, tuple([1,0,0, level,1,0]))
 	image = np.array(image)
-	image = unwrap(image, replace)
+	if is_wrap:
+		image = unwrap(image, replace)
 	return image
 
 
@@ -1069,6 +1213,19 @@ def _shear_bbox(bbox, image_height, image_width, level, shear_horizontal):
 
 
 #------------------------------------------------------------------------------
+#  shear_image
+#------------------------------------------------------------------------------
+def shear_image(image, level, replace, shear_horizontal, is_wrap=True):
+	if shear_horizontal:
+		image = shear_x(image, level, replace, is_wrap=is_wrap)
+	else:
+		image = shear_y(image, level, replace, is_wrap=is_wrap)
+	return image
+
+#------------------------------------------------------------------------------
+#  shear_mask
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 #  shear_with_bboxes
 #------------------------------------------------------------------------------
 def shear_with_bboxes(image, bboxes, level, replace, shear_horizontal):
@@ -1090,16 +1247,44 @@ def shear_with_bboxes(image, bboxes, level, replace, shear_horizontal):
 		image by level. The second element of the tuple is bboxes, where now
 		the coordinates will be shifted to reflect the sheared image.
 	"""
-	if shear_horizontal:
-		image = shear_x(image, level, replace)
-	else:
-		image = shear_y(image, level, replace)
 
+	image = shear_image(image,  level, replace, shear_horizontal)
+	# masks = [shear_image(mask, level, replace, shear_horizontal, is_wrap=False) for mask in masks]
 	# Convert bbox coordinates to pixel values.
 	image_height = image.shape[0]
 	image_width = image.shape[1]
 	bboxes = [_shear_bbox(bbox, image_height, image_width, level, shear_horizontal) for bbox in bboxes]
 	return image, bboxes
+
+
+
+def shear_with_bboxes_mask(image, bboxes, masks, level, replace, shear_horizontal):
+	"""Applies Shear Transformation to the image and shifts the bboxes.
+
+	Args:
+		image: 3D uint8 Tensor.
+		bboxes: 2D Tensor that is a list of the bboxes in the image. Each bbox
+			has 4 elements (min_y, min_x, max_y, max_x) of type float with values
+			between [0, 1].
+		level: Float. How much to shear the image. This value will be between
+			-0.3 to 0.3.
+		replace: A one or three value 1D tensor to fill empty pixels.
+		shear_horizontal: Boolean. If true then shear in X dimension else shear in
+			the Y dimension.
+
+	Returns:
+		A tuple containing a 3D uint8 Tensor that will be the result of shearing
+		image by level. The second element of the tuple is bboxes, where now
+		the coordinates will be shifted to reflect the sheared image.
+	"""
+	
+	image = shear_image(image,  level, replace, shear_horizontal)
+	masks = [shear_image(mask, level, replace, shear_horizontal, is_wrap=False) for mask in masks]
+	# Convert bbox coordinates to pixel values.
+	image_height = image.shape[0]
+	image_width = image.shape[1]
+	bboxes = [_shear_bbox(bbox, image_height, image_width, level, shear_horizontal) for bbox in bboxes]
+	return image, bboxes, masks
 
 
 #------------------------------------------------------------------------------
@@ -1140,6 +1325,7 @@ def wrap(image):
 	"""Returns 'image' with an extra channel set to all 255s."""
 	shape = image.shape
 	extended_channel = 255 * np.ones([shape[0], shape[1], 1], image.dtype)
+	# import ipdb; ipdb.set_trace()
 	extended = np.concatenate([image, extended_channel], 2)
 	return extended
 
@@ -1308,11 +1494,25 @@ def _TranslateX_BBox(image, bboxes, pixels, replace):
 def _TranslateY_BBox(image, bboxes, pixels, replace):
 	return translate_bbox(image, bboxes, pixels, replace, shift_horizontal=False)
 
-def _ShearX_BBox(image, bboxes, level, replace):
+def _TranslateX_BBox_Mask(image, bboxes, masks, pixels, replace):
+	return translate_bbox_mask(image, bboxes, masks, pixels, replace, shift_horizontal=True)
+
+def _TranslateY_BBox_Mask(image, bboxes, masks, pixels, replace):
+	return translate_bbox_mask(image, bboxes, masks, pixels, replace, shift_horizontal=False)
+
+
+
+def _ShearX_BBox(image, bboxes , level, replace):
 	return shear_with_bboxes(image, bboxes, level, replace, shear_horizontal=True)
 
 def _ShearY_BBox(image, bboxes, level, replace):
 	return shear_with_bboxes(image, bboxes, level, replace, shear_horizontal=False)
+
+def _ShearX_BBox_Mask(image, bboxes, masks, level, replace):
+	return shear_with_bboxes_mask(image, bboxes, masks, level, replace, shear_horizontal=True)
+
+def _ShearY_BBox_Mask(image, bboxes, masks, level, replace):
+	return shear_with_bboxes_mask(image, bboxes, masks, level, replace, shear_horizontal=False)
 
 NAME_TO_FUNC = {
 		'AutoContrast': autocontrast,
@@ -1325,17 +1525,24 @@ NAME_TO_FUNC = {
 		'Brightness': brightness,
 		'Sharpness': sharpness,
 		'Cutout': cutout,
+		'Cutout_Mask': cutout_mask,
 		'BBox_Cutout': bbox_cutout,
 		'Rotate_BBox': rotate_with_bboxes,
 		'TranslateX_BBox': _TranslateX_BBox,
 		'TranslateY_BBox': _TranslateY_BBox,
+		'TranslateX_BBox_Mask': _TranslateX_BBox_Mask,
+		'TranslateY_BBox_Mask': _TranslateY_BBox_Mask,
 		'ShearX_BBox': _ShearX_BBox,
 		'ShearY_BBox': _ShearY_BBox,
+		'ShearX_BBox_Mask': _ShearX_BBox_Mask,
+		'ShearY_BBox_Mask': _ShearY_BBox_Mask,
 		'Rotate_Only_BBoxes': rotate_only_bboxes,
 		'ShearX_Only_BBoxes': shear_x_only_bboxes,
 		'ShearY_Only_BBoxes': shear_y_only_bboxes,
 		'TranslateX_Only_BBoxes': translate_x_only_bboxes,
 		'TranslateY_Only_BBoxes': translate_y_only_bboxes,
+		'TranslateX_Only_BBoxes_Mask': translate_x_only_bboxes_mask,
+		'TranslateY_Only_BBoxes_Mask': translate_y_only_bboxes_mask,
 		'Flip_Only_BBoxes': flip_only_bboxes,
 		'Solarize_Only_BBoxes': solarize_only_bboxes,
 		'Equalize_Only_BBoxes': equalize_only_bboxes,
@@ -1424,17 +1631,24 @@ def level_to_arg(hparams):
 		'Brightness': _enhance_level_to_arg,
 		'Sharpness': _enhance_level_to_arg,
 		'Cutout': lambda level: (int((level/_MAX_LEVEL) * hparams.cutout_const),),
+		'Cutout_Mask': lambda level: (int((level/_MAX_LEVEL) * hparams.cutout_const),),
 		'BBox_Cutout': lambda level: _bbox_cutout_level_to_arg(level, hparams),
 		'TranslateX_BBox': lambda level: _translate_level_to_arg(level, hparams.translate_const),
+		'TranslateX_BBox_Mask': lambda level: _translate_level_to_arg(level, hparams.translate_const),
 		'TranslateY_BBox': lambda level: _translate_level_to_arg(level, hparams.translate_const),
+		'TranslateY_BBox_Mask': lambda level: _translate_level_to_arg(level, hparams.translate_const),
 		'ShearX_BBox': _shear_level_to_arg,
 		'ShearY_BBox': _shear_level_to_arg,
+		'ShearX_BBox_Mask': _shear_level_to_arg,
+		'ShearY_BBox_Mask': _shear_level_to_arg,
 		'Rotate_BBox': _rotate_level_to_arg,
 		'Rotate_Only_BBoxes': _rotate_level_to_arg,
 		'ShearX_Only_BBoxes': _shear_level_to_arg,
 		'ShearY_Only_BBoxes': _shear_level_to_arg,
 		'TranslateX_Only_BBoxes': lambda level: _translate_level_to_arg(level, hparams.translate_bbox_const),
 		'TranslateY_Only_BBoxes': lambda level: _translate_level_to_arg(level, hparams.translate_bbox_const),
+		'TranslateX_Only_BBoxes_Mask': lambda level: _translate_level_to_arg(level, hparams.translate_bbox_const),
+		'TranslateY_Only_BBoxes_Mask': lambda level: _translate_level_to_arg(level, hparams.translate_bbox_const),
 		'Flip_Only_BBoxes': lambda level: (),
 		'Solarize_Only_BBoxes': lambda level: (int((level/_MAX_LEVEL) * 256),),
 		'Equalize_Only_BBoxes': lambda level: (),
@@ -1458,6 +1672,7 @@ def bbox_wrapper(func):
 def _parse_policy_info(name, prob, level, replace_value, augmentation_hparams):
 	"""Return the function that corresponds to `name` and update `level` param."""
 	func = NAME_TO_FUNC[name]
+	# import ipdb; ipdb.set_trace()
 	args = level_to_arg(augmentation_hparams)[name](level)
 
 	# Check to see if prob is passed into function. This is used for operations
@@ -1493,11 +1708,12 @@ def _apply_func_with_prob(func, image, args, prob, bboxes):
 	# Apply the function with probability `prob`.
 	should_apply_op = np.floor(np.random.uniform(size=[]).astype(np.float32) + prob).astype(bool)
 	if should_apply_op:
-		augmented_image, augmented_bboxes = func(image, bboxes, *args)
+		augmented_image, augmented_bboxes = func(image, bboxes,*args)
+
 	else:
 		augmented_image, augmented_bboxes = image, bboxes
 
-	return augmented_image, augmented_bboxes
+	return augmented_image, augmented_bboxes 
 
 
 #------------------------------------------------------------------------------
@@ -1562,4 +1778,77 @@ def distort_image_with_autoaugment(image, bboxes, augmentation_name):
 		cutout_max_pad_fraction=0.75, cutout_bbox_replace_with_mean=False,
 		cutout_const=100, translate_const=250, cutout_bbox_const=50,
 		translate_bbox_const=120)
-	return build_and_apply_nas_policy(policy, image, bboxes, augmentation_hparams)
+	return build_and_apply_nas_policy(policy, image, bboxes,augmentation_hparams)
+
+
+
+##############################################################################
+#------------------------------------------------------------------------------
+#  distort_image_with image autoaugment and mask 
+#------------------------------------------------------------------------------
+def _apply_func_with_prob_mask(func, image, args, prob, bboxes, masks):
+	"""Apply `func` to image w/ `args` as input with probability `prob`."""
+	assert isinstance(args, tuple)
+	assert 'bboxes' == inspect.getargspec(func)[0][1]
+
+	# If prob is a function argument, then this randomness is being handled
+	# inside the function, so make sure it is always called.
+	if 'prob' in inspect.getargspec(func)[0]:
+		prob = 1.0
+
+	# Apply the function with probability `prob`.
+	should_apply_op = np.floor(np.random.uniform(size=[]).astype(np.float32) + prob).astype(bool)
+	if should_apply_op:
+		augmented_image, augmented_bboxes, augmented_masks = func(image, bboxes, masks,*args)
+		# if 'masks' in inspect.getargspec(func).args:
+		# 	augmented_image, augmented_bboxes, augmented_masks = func(image, bboxes, masks,*args)
+		# else:	
+		# 	augmented_image, augmented_bboxes = func(image, bboxes,*args)
+		# 	augmented_masks = masks
+	else:
+		augmented_image, augmented_bboxes, augmented_masks = image, bboxes, masks
+
+	return augmented_image, augmented_bboxes, augmented_masks
+
+
+def build_and_apply_nas_policy_mask(policies, image, bboxes, masks, augmentation_hparams):
+	"""Build a policy from the given policies passed in and apply to image.
+
+	Args:
+	policies: list of lists of tuples in the form `(func, prob, level)`, `func`
+		is a string name of the augmentation function, `prob` is the probability
+		of applying the `func` operation, `level` is the input argument for
+		`func`.
+	image: tf.Tensor that the resulting policy will be applied to.
+	bboxes:
+	augmentation_hparams: Hparams associated with the NAS learned policy.
+
+	Returns:
+	A version of image that now has data augmentation applied to it based on
+	the `policies` pass into the function. Additionally, returns bboxes if
+	a value for them is passed in that is not None
+	"""
+	replace_value = [128, 128, 128]
+	policy_to_select = np.random.uniform(size=[], high=len(policies)).astype(int)
+	policy = policies[policy_to_select]
+
+	for policy_info in policy:
+		policy_info = list(policy_info) + [replace_value, augmentation_hparams]
+		func, prob, args = _parse_policy_info(*policy_info)
+		image, bboxes, masks = _apply_func_with_prob_mask(func, image, args, prob, bboxes, masks)
+
+	return image, bboxes, masks
+
+
+def distort_image_with_autoaugment_mask(image, bboxes, masks, augmentation_name):
+
+	available_policies = {'v0': policy_v0, 'v1': policy_v1, 'v2': policy_v2, 'v3': policy_v3, 'test': policy_vtest}
+	if augmentation_name not in available_policies:
+		raise ValueError('Invalid augmentation_name: {}'.format(augmentation_name))
+
+	policy = available_policies[augmentation_name]()
+	augmentation_hparams = Hparams(
+		cutout_max_pad_fraction=0.75, cutout_bbox_replace_with_mean=False,
+		cutout_const=100, translate_const=250, cutout_bbox_const=50,
+		translate_bbox_const=120)
+	return build_and_apply_nas_policy_mask(policy, image, bboxes, masks, augmentation_hparams)

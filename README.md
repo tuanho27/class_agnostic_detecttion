@@ -11,6 +11,7 @@ conda install mpmath pandas tqdm -y
 conda install -c conda-forge json_tricks -y
 pip install pytest torch_dct imagecorruptions albumentations pycocotools
 conda install pytorch torchvision cudatoolkit=10.0 -c pytorch -y
+pip install git+https://github.com/vnbot2/pyson xxhash
 
 #Setup mmdetection
 rm -rf mmdetection

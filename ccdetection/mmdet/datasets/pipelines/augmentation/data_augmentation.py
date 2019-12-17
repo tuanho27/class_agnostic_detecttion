@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 from .auto_classification import AutoAugmentation
-from .auto_detection import distort_image_with_autoaugment
+from .auto_detection import distort_image_with_autoaugment, distort_image_with_autoaugment_mask
 # from .styleaug import StyleAugmentor
 
 from .styleaug import StyleAugmentor
@@ -45,18 +45,26 @@ class StyleAugmentation(object):
 #------------------------------------------------------------------------------
 @PIPELINES.register_module
 class ObjDetAugmentation(object):
-	def __init__(self, policy='v0'):
+	def __init__(self, policy='v0', with_mask=True):
 		assert policy in ['v0']
 		self.policy = policy
+		self.with_mask = with_mask
 		print("[{}] Initialize with policy {}".format(self.__class__.__name__, policy))
 
 	def __call__(self, results):
 		image = results['img']
 		bboxes = results['gt_bboxes']
+		print("DATA KEY: \n",results.keys())
+		masks = results['gt_masks']
+
 		height, width = image.shape[:2]
 		bboxes = self._normalize_bboxes(bboxes, height, width)
-
-		augmented_image, augmented_bbox = distort_image_with_autoaugment(image, bboxes, self.policy)
+		if self.with_mask:
+			augmented_image, augmented_bbox, augmented_mask = distort_image_with_autoaugment_mask(image, bboxes, masks, self.policy)
+			results['gt_masks'] = augmented_mask
+		else:
+			augmented_image, augmented_bbox = distort_image_with_autoaugment(image, bboxes, self.policy)
+		
 		augmented_image = augmented_image.copy()
 		augmented_bbox = np.array(augmented_bbox, np.float32)
 

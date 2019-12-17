@@ -5,7 +5,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import torch
 from mmcv.parallel import collate, scatter
 from mmdet.datasets.pipelines import Compose
-from mmdet.datasets.coco_polar import Coco_Seg_Dataset as DATASET
 from mmdet.apis.inference import init_detector, inference_detector, show_result, LoadImage
 
 
@@ -21,30 +20,34 @@ def get_data(img, cfg, device):
 
 
 config = "ccdetection/configs/polarmask/polar_b1_semseg.py"
-checkpoint = "/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/epoch_30.pth"
-img_file = "/home/member/Workspace/dataset/coco/images/val2017/000000397133.jpg"
-out_file = "/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/debug.png"
+checkpoint = "work_dirs/polar-B1-FPN-yolact_1image/epoch_29.pth"
+img_file = "work_dirs/000000397133.jpg"
+out_file = "work_dirs/000000397133_out.png"
 
 
 model = init_detector(config, checkpoint=checkpoint, device='cuda')
-data = get_data(img_file, model.cfg, next(model.parameters()).device)
-print(data.keys())
+# data = get_data(img_file, model.cfg, next(model.parameters()).device)
+# print(data.keys())
+# with torch.no_grad():
+# 	img = data['img'][0]
+# 	ori_shape = data['img_meta'][0][0]['img_shape']
 
-with torch.no_grad():
-	img = data['img'][0]
-	ori_shape = data['img_meta'][0][0]['img_shape']
+# 	x = model.extract_feat(img)
+# 	outs = model.bbox_head(x)
+# 	mask_pred = model.semseg_head(x)
+# 	mask_pred = model.semseg_head.get_seg_masks(mask_pred, ori_shape, scale_factor=1.0, rescale=True, threshold=0.5)
+# 	mask_pred = mask_pred[0,0].astype('uint8')
+# 	print('mask_pred', mask_pred.shape, mask_pred.min(), mask_pred.max())
 
-	x = model.extract_feat(img)
-	outs = model.bbox_head(x)
-	mask_pred = model.semseg_head(x)
-	mask_pred = model.semseg_head.get_seg_masks(mask_pred, ori_shape, scale_factor=1.0, rescale=True, threshold=0.5)
-	mask_pred = mask_pred[0,0].astype('uint8')
-	print('mask_pred', mask_pred.shape, mask_pred.min(), mask_pred.max())
+results = inference_detector(model, img_file)
 
-image = cv2.imread(img_file)[...,::-1]
-image = cv2.resize(image, (mask_pred.shape[1], mask_pred.shape[0]), interpolation=cv2.INTER_LINEAR)
-mask = np.zeros_like(image)
-mask[mask_pred==1,...] = (0,0,255)
-image = cv2.add(image, mask)
-cv2.imwrite(out_file, image[...,::-1])
+# show the results
+show_result(img_file, results, model.CLASSES,show=False, out_file=out_file)
+
+# image = cv2.imread(img_file)[...,::-1]
+# image = cv2.resize(image, (mask_pred.shape[1], mask_pred.shape[0]), interpolation=cv2.INTER_LINEAR)
+# mask = np.zeros_like(image)
+# mask[mask_pred==1,...] = (0,0,255)
+# image = cv2.add(image, mask)
+# cv2.imwrite(out_file, image[...,::-1])
 # cv2.imwrite(out_file, 255*mask_pred)
