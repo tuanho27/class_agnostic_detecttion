@@ -8,6 +8,8 @@ from .base import BaseDetector
 import time
 import torch
 import torch.nn.functional as F
+import numpy as np
+from mmdet.core import auto_fp16, force_fp32, mask_target
 
 @DETECTORS.register_module
 class PolarMask(SingleStageDetector):
@@ -56,6 +58,7 @@ class PolarMask(SingleStageDetector):
 
 		self.bbox_head.init_weights()
 
+	# @force_fp32(apply_to=('logit_4D','mask_4D'))
 	def forward_train(self,
 					  img,
 					  img_metas,
@@ -113,27 +116,45 @@ class PolarMask(SingleStageDetector):
 			proto_mask, protonet_coff_new = self.yolact_proto_head(x, protonet_coff)
 			loss_proto_mask = self.yolact_proto_head.loss(gt_fg_mask, 
 														  proto_mask,
-														  protonet_coff_new, 
+														  protonet_coff, 
+														  outs[:][1],
+														  outs[:][2],
 														  extra_data)
+
+			## add mask 4D for rmi loss
+			# proto_mask, protonet_coff_new, logit_4D = self.yolact_proto_head(x, protonet_coff, img)
+			# mask_4D = []
+			# for gt_mask, gt_label in zip(gt_masks, gt_labels):
+			# 	for mask, label in zip(gt_mask, gt_label):
+			# 		mask[mask>0] = label.cpu()
+			# 	mask = np.sum(gt_mask,axis=0)
+			# 	mask_4D.append(mask)
+			# mask_4D = torch.from_numpy(np.array(mask_4D).astype(np.long)).cuda()
+			# loss_proto_mask, loss_rmi = self.yolact_proto_head.loss(gt_fg_mask, 
+			# 											  proto_mask,
+			# 											  protonet_coff_new, 
+			# 											  logit_4D, 
+			# 											  mask_4D)
+
+			## update loss
 			losses.update(loss_proto_mask)
+			# losses.update(loss_rmi)
 
 		return losses
 
 	def simple_test(self, img, img_meta, rescale=False):
 		x = self.extract_feat(img)
 		outs = self.bbox_head(x)
-		# import ipdb; ipdb.set_trace()
 		bbox_inputs = outs[:4] + (img_meta, self.test_cfg, rescale)
 
 		bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
-
+		import ipdb; ipdb.set_trace()
 		results = [
 			bbox_mask2result(det_bboxes, det_masks, det_labels, self.bbox_head.num_classes, img_meta[0])
 			for det_bboxes, det_labels, det_masks in bbox_list]
 
 		bbox_results = results[0][0]
 		mask_results = results[0][1]
-
 		return bbox_results, mask_results
 
 

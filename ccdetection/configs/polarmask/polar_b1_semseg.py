@@ -19,14 +19,14 @@ debug = False
 use_gn = False
 lr_start = 1e-2
 lr_end = 1e-4
-imgs_per_gpu = 1
-total_epochs = 30 
+imgs_per_gpu = 4
+total_epochs = 14
 # resume_from = './work_dirs/polar-B1-FPN-SemSeg_ft2/latest.pth'
 resume_from=None
 pretrained = None
 img_scale = (1280, 768)
 data_root = '../datasets/coco/'
-work_dir = './work_dirs/polar-B1-FPN-semseg-yolact_ft'
+work_dir = './work_dirs/polar-B1-FPN-SemSeg_ft_all_rmi'
 load_from = './work_dirs/polar-B1-FPN-SemSeg/epoch_12.pth'
 fp16 = dict(loss_scale=512.)
 
@@ -103,20 +103,19 @@ model = dict(
 		loss_centerness=dict(
 			type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
 	),
-	# semseg_head=None,
-	semseg_head=dict(
-		type='SemSegHead',
-		num_convs=4,
-		in_channels=fpn_channels,
-		conv_kernel_size=3,
-		conv_out_channels=fpn_channels,
-		input_index=0,
-		upsample_method='bilinear',
-		upsample_ratio=2,
-		num_classes=1,
-		loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-	),
-	# yolact_proto_head=None,
+	semseg_head=None,
+	# semseg_head=dict(
+	# 	type='SemSegHead',
+	# 	num_convs=4,
+	# 	in_channels=fpn_channels,
+	# 	conv_kernel_size=3,
+	# 	conv_out_channels=fpn_channels,
+	# 	input_index=0,
+	# 	upsample_method='bilinear',
+	# 	upsample_ratio=2,
+	# 	num_classes=1,
+	# 	loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+	# ),
 	yolact_proto_head=dict(
 		type='YolactProtoHead',
 		num_convs=3,
@@ -125,6 +124,7 @@ model = dict(
 		conv_out_channels=32,
 		input_index=0,
 		upsample_method='bilinear',
+		num_classes=81,
 		upsample_ratio=2,
 		loss_combine_protonet=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
 	),
