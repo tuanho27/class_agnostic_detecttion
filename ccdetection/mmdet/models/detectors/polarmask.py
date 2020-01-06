@@ -104,21 +104,31 @@ class PolarMask(SingleStageDetector):
 												extra_data) 
 			losses.update(loss_semseg)
 			# losses.update(loss_combine_cls)
-		# import ipdb; ipdb.set_trace()
 		if self.with_yolact:			
-			protonet_coff = outs[:][4]
-			proto_mask = self.yolact_proto_head(x, protonet_coff)
-			loss_proto_mask = self.yolact_proto_head.loss(gt_fg_mask, 
-														  proto_mask,
-														  protonet_coff, 
-														  outs[:][1],
-														  outs[:][2],
-														  extra_data)
+			proto_mask, logit_4D = self.yolact_proto_head(x, outs[:][4], img) #outs[:][4] = protonet_coff
+			## create semantic mask for RMI loss
+			gt_seg_mask_4D = []
+			if len(gt_masks) != 0 :
+				seg_mask_4D = np.zeros_like(gt_masks[0][0])
+				for gt_mask, gt_label in zip(gt_masks, gt_labels):
+					for mask, label in zip(gt_mask, gt_label):
+						seg_mask_4D[mask!=0] = label.cpu()
+					gt_seg_mask_4D.append(np.expand_dims(seg_mask_4D, axis=0))
+					# gt_seg_mask_4D.append(seg_mask_4D)
+				gt_seg_mask_4D = torch.from_numpy(np.array(gt_seg_mask_4D).astype(np.long)).cuda()
+
+			loss_proto_mask, loss_rmi = self.yolact_proto_head.loss(gt_fg_mask, 
+																	proto_mask,
+																	outs[:][4], #outs[:][4] = protonet_coff
+																	outs[:][0], #outs[:][0] = cls_scores 
+																	outs[:][1], #outs[:][1] = bbox_preds
+																	extra_data, logit_4D, gt_seg_mask_4D)
 			## update loss
 			losses.update(loss_proto_mask)
-			# losses.update(loss_rmi)
+			losses.update(loss_rmi)
 
 		return losses
+
 
 	def simple_test(self, img, img_meta, rescale=False):
 		x = self.extract_feat(img)
@@ -126,7 +136,7 @@ class PolarMask(SingleStageDetector):
 		bbox_inputs = outs[:4] + (img_meta, self.test_cfg, rescale)
 
 		bbox_list = self.bbox_head.get_bboxes(*bbox_inputs)
-		import ipdb; ipdb.set_trace()
+		# import ipdb; ipdb.set_trace()
 		results = [
 			bbox_mask2result(det_bboxes, det_masks, det_labels, self.bbox_head.num_classes, img_meta[0])
 			for det_bboxes, det_labels, det_masks in bbox_list]

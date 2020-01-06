@@ -95,7 +95,7 @@ class YolactProtoHead(nn.Module):
 					conv_cfg=conv_cfg,
 					norm_cfg=norm_cfg)
 		# self.conv1x1_proto = nn.Conv2d(32*2, 32, 3, padding=1)
-		self.last_conv = nn.Conv2d(self.conv_out_channels, num_classes, kernel_size=1, stride=1)
+		self.last_conv = nn.Conv2d(self.in_channels, self.num_classes, kernel_size=1, stride=1)
 
 	def init_weights(self):
 		for m in [self.upsample, self.convs, self.conv1x1, self.convs_post]:
@@ -111,8 +111,8 @@ class YolactProtoHead(nn.Module):
 		# normal_init(self.conv1x1_proto, std=0.01)
 
 	@auto_fp16()
-	# def forward(self, feats, protonet_coff, img):
-	def forward(self, feats, protonet_coff):
+	def forward(self, feats, protonet_coff, input):
+	# def forward(self, feats, protonet_coff):
 		x = feats[self.input_index]
 
 		for conv in self.convs:
@@ -132,30 +132,21 @@ class YolactProtoHead(nn.Module):
 		out_proto = torch.tanh(self.conv1x1(x))
 		# for protonet cofficient
 		# protonet_coff = self.conv1x1_proto(protonet_coff)
-		return out_proto #,  protonet_coff
+		# return out_proto #,  protonet_coff
 
 		# for rmi loss
-		# logit = self.last_conv(out_proto)
-		# logit_4D = F.interpolate(logit, size=img.size()[2:], mode='bilinear', align_corners=True)
-		# return out_proto,  protonet_coff, logit_4D
+		logit = self.last_conv(x)
+		size_logit=input.size()[2:]
+		logit_4D = F.interpolate(logit, size=(int(size_logit[0]/4),int(size_logit[1]/4)), 
+													mode='bilinear', align_corners=True)
+		return out_proto, logit_4D
 
 
 	@force_fp32(apply_to=('mask_preds','mask_coffs','mask_targets'))
-	def loss(self, mask_targets, mask_preds, mask_coffs, cls_scores, bbox_preds, extra_data):
+	def loss(self, mask_targets, mask_preds, mask_coffs, cls_scores, 
+						bbox_preds, extra_data, logit_4D, mask_target_4D):
 	# def loss(self, mask_targets, mask_preds, mask_coff, logit_4D, mask_target_4D):
-		# out_coff_resize = F.interpolate(mask_coff,
-							# size=(mask_preds.shape[2],mask_preds.shape[3]),
-							# mode=self.upsample_method)
-		# out = torch.matmul(mask_preds,out_coff_resize)
-		# out_new = torch.mean(torch.tanh(out), dim=1, keepdim=True)
-		# out_new = F.interpolate(out_new,
-
-		# out_new = torch.mean(mask_preds, dim=1, keepdim=True)
-		# out_new = F.interpolate(out_new,
-							# size=(mask_targets.shape[2],mask_targets.shape[3]),
-							# mode=self.upsample_method)
-
-		
+	
 		# Flatten tensor
 		featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
 		# print("Feature Map size: ",featmap_sizes)
@@ -171,13 +162,15 @@ class YolactProtoHead(nn.Module):
 		flatten_labels = torch.cat(labels).long()
 		pos_inds = flatten_labels.nonzero().reshape(-1)
 		pos_mask_coffs = flatten_mask_coffs[pos_inds]
-
+	
 		mask_preds_assembly = []
 		for mask in mask_preds:
-			out = torch.sigmoid(torch.matmul(mask.permute(1,2,0), pos_mask_coffs.t()))
+			# out = torch.sigmoid(torch.matmul(mask.permute(1,2,0), pos_mask_coffs.t()))
+			out = torch.matmul(mask.permute(1,2,0), pos_mask_coffs.t())
 			mask_preds_assembly.append(out)
 
 		mask_preds_assembly = torch.mean(torch.stack(mask_preds_assembly), dim=3, keepdim=True)
+		# mask_preds_assembly = torch.stack(mask_preds_assembly)
 		mask_preds_assembly = F.interpolate(mask_preds_assembly.permute(0,3,1,2),
 					size=(mask_targets.shape[2],mask_targets.shape[3]),
 					mode=self.upsample_method)
@@ -187,10 +180,17 @@ class YolactProtoHead(nn.Module):
 		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, 1)
 		# Compute loss
 		loss_combine_protonet = self.loss_combine_protonet(mask_preds_assembly, mask_targets)
-		return {'loss_combine_protonet':loss_combine_protonet}
+		if mask_target_4D.shape[1] != 0:
+			mask_target_4D =  F.interpolate(mask_target_4D.float(), 
+							size=(logit_4D.shape[2],logit_4D.shape[3]),
+							mode=self.upsample_method)
+			mask_target_4D = mask_target_4D.long().view(mask_target_4D.shape[0],mask_target_4D.shape[2],mask_target_4D.shape[3])
+			# import ipdb; ipdb.set_trace()
+			loss_rmi = self.loss_rmi(logit_4D, mask_target_4D).mean()
+		else:
+			loss_rmi = 0
 
-		# loss_rmi = self.loss_rmi(logit_4D, mask_target_4D).mean()
-		# return {'loss_combine_protonet':loss_combine_protonet}, {'loss_rmi':loss_rmi}
+		return {'loss_combine_protonet':loss_combine_protonet}, {'loss_rmi':loss_rmi}
 
 
 	def get_points(self, featmap_sizes, dtype, device):
@@ -200,6 +200,7 @@ class YolactProtoHead(nn.Module):
 				self.get_points_single(featmap_sizes[i], self.strides[i],
 										dtype, device))
 		return mlvl_points
+
 
 	def get_points_single(self, featmap_size, stride, dtype, device):
 		h, w = featmap_size

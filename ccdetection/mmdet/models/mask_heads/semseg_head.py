@@ -127,8 +127,9 @@ class SemSegHead(nn.Module):
 		return mask_pred, new_outs
 
 	@force_fp32(apply_to=('mask_pred','new_outs','bbox_preds'))
-	def loss(self, mask_pred, mask_targets, new_outs, bbox_preds, extra_data):
+	def loss(self, mask_pred, mask_targets, new_outs):
 		# Flatten tensor
+		mask_targets = F.interpolate(mask_targets.float(), size=(mask_pred.shape[2],mask_pred.shape[3]))
 		num_classes = mask_pred.shape[1]
 		mask_pred = mask_pred.permute(0, 2, 3, 1).reshape(-1, num_classes)
 		mask_targets = mask_targets.permute(0, 2, 3, 1).reshape(-1, num_classes)

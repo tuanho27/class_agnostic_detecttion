@@ -12,11 +12,11 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[20, 30])
-data_root = 'dataset-coco/'
+data_root = '../datasets/coco/'
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=100,
     hooks=[
         dict(type='TextLoggerHook'),
     ])
@@ -26,7 +26,7 @@ log_config = dict(
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/fcos_mask_r50_fp16'
+work_dir = './work_dirs/fcos_mask_r50_fp16_seg_d2'
 load_from = None
 # resume_from = 'model_zoo/fcos_r50_caffe_fpn_1x_4gpu_20190516-a7cac5ff.pth'
 # resume_from = 'model_zoo/fcos_mstrain_640_800_r50_caffe_fpn_gn_2x_4gpu_20190516-f7329d80.pth'
@@ -37,7 +37,7 @@ num_samples = None
 train_ann_file = data_root + 'annotations/instances_train2017.json'
 train_img_dir = data_root+'images/train2017/'
 roi_out_size = 14
-imgs_per_gpu = 12
+imgs_per_gpu = 8
 pretrained = None
 train_mask_after_epoch=5
 if debug:
@@ -47,8 +47,8 @@ if debug:
     num_samples = 1
     workers_per_gpu = 1
     imgs_per_gpu = 1
-    train_ann_file = data_root + 'annotations/instances_val2017.json'
-    train_img_dir = data_root+'images/val2017/'
+    train_ann_file = data_root + '1image.json'
+    train_img_dir=data_root + 'images/val2017/'
     # learning policy
 
     log_config = dict(
@@ -78,7 +78,7 @@ EfficientDetConfig ={
 	'D5': dict(Backbone='efficientnet_b5',ImgSize=(1280*wh_ratio, 1280),fpn_channel=288,fpn_stack=7,head_depth=4),
 	'D6': dict(Backbone='efficientnet_b6',ImgSize=(1408*wh_ratio, 1408),fpn_channel=384,fpn_stack=8,head_depth=5),
 }
-model_cfg=EfficientDetConfig['D1']
+model_cfg=EfficientDetConfig['D2']
 model = dict(
     type='FCOSMask',
     pretrained=pretrained,
@@ -127,12 +127,23 @@ model = dict(
         type='FCNMaskHead',
         num_convs=4,
         in_channels=model_cfg['fpn_channel'],
-        conv_out_channels=256,
+        conv_out_channels=model_cfg['fpn_channel'],
         num_classes=81,
         loss_mask=dict(
             type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)
-    )
-
+    ),
+    semseg_head=dict(
+		type='SemSegHead',
+		num_convs=4,
+		in_channels=model_cfg['fpn_channel'],
+		conv_kernel_size=3,
+		conv_out_channels=model_cfg['fpn_channel'],
+		input_index=0,
+		upsample_method='bilinear',
+		upsample_ratio=2,
+		num_classes=1,
+		loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+	)
 )
 
 # training and testing settings
@@ -172,7 +183,6 @@ train_cfg = dict(
 )
 
 
-
 test_cfg = dict(
     nms_pre=1000,
     min_bbox_size=0,
@@ -194,11 +204,12 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
-    dict(
-        type='Resize',
-        img_scale=[(1333, 640), (1333, 800)],
-        multiscale_mode='value',
-        keep_ratio=True),
+    dict(type='Resize', img_scale=(1333, 800), keep_ratio=False),
+    # dict(
+    #     type='Resize',
+    #     img_scale=[(1333, 640), (1333, 800)],
+    #     multiscale_mode='value',
+    #     keep_ratio=True),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),

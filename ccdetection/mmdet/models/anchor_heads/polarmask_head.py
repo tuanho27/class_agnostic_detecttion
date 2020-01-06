@@ -232,7 +232,6 @@ class PolarMask_Head(nn.Module):
                                            bbox_preds[0].device)
 
         labels, bbox_targets, mask_targets = self.polar_target(all_level_points, extra_data)
-
         num_imgs = cls_scores[0].size(0)
         # flatten cls_scores, bbox_preds and centerness
         flatten_cls_scores = [

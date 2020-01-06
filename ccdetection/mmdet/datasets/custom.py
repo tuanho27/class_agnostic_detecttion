@@ -141,17 +141,17 @@ class CustomDataset(Dataset):
             
     def prepare_train_img(self, idx):
         img_info = self.img_infos[idx]
-        # ann_info = self.get_ann_info(idx)
+        ann_info = self.get_ann_info(idx)
              ## adding instaboost augmentation before start data pipeline 
-        if self.instaboost:
-            img = mmcv.imread(osp.join(self.img_prefix, img_info['filename']))
-            img_id = self.img_infos[idx]['id']
-            ann_ids = self.coco.getAnnIds(imgIds=[img_id])
-            ann_info = self.coco.loadAnns(ann_ids)
-            aug_flag = np.random.choice([0,1],p=[0.5,0.5])
-            if aug_flag:
-                ann_info, img = get_new_data(ann_info, img, None, background=None)
-            ann_info = self._parse_ann_info(img_info, ann_info, True)
+        # if self.instaboost:
+        #     img = mmcv.imread(osp.join(self.img_prefix, img_info['filename']))
+        #     img_id = self.img_infos[idx]['id']
+        #     ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+        #     ann_info = self.coco.loadAnns(ann_ids)
+        #     aug_flag = np.random.choice([0,1],p=[0.5,0.5])
+        #     if aug_flag:
+        #         ann_info, img = get_new_data(ann_info, img, None, background=None)
+        #     ann_info = self._parse_ann_info(img_info, ann_info, True)
 
         results = dict(img_info=img_info, ann_info=ann_info)
         if self.proposals is not None:

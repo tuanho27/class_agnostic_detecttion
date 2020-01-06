@@ -7,7 +7,7 @@ from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
-
+import torch.nn.functional as F
 
 @DETECTORS.register_module
 class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
@@ -23,6 +23,7 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                  bbox_head=None,
                  mask_roi_extractor=None,
                  mask_head=None,
+                 semseg_head=None,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
@@ -38,13 +39,12 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
 
         self.mask_roi_extractor = builder.build_roi_extractor(mask_roi_extractor)
         self.mask_head = builder.build_head(mask_head)
-        
         if (train_cfg is not None) and  (not 'train_mask' in train_cfg):
             train_cfg['train_mask'] = True
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
-        self.init_weights(pretrained=pretrained)
+        self.init_weights(pretrained=pretrained)  
 
     def init_weights(self, pretrained=None):
         super(MaskSingleStateDetector, self).init_weights(pretrained)
@@ -95,20 +95,14 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas, self.train_cfg)
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-        if self.train_cfg.train_mask:        
+        if self.train_cfg.train_mask:   
             # The below code is adopted from two_stage.py
             # Proposal bboxes by nms/get bbox with top predicted prob
-            proposal_cfg = self.train_cfg.get('rpn_proposal',
-                                                self.test_cfg)
-
+            proposal_cfg = self.train_cfg.get('rpn_proposal', self.test_cfg)
             proposal_inputs = outs + (img_metas, proposal_cfg)
             bbox_results = self.bbox_head.get_bboxes(*proposal_inputs)
-            #self.time_records['proposal'].append(self.timer.since_last_check())
-            # collect
-            bbox_targets = [(bb, lbl) for bb, lbl in zip(gt_bboxes, gt_labels)]
             proposal_list = [det_bboxes for det_bboxes, det_labels in bbox_results]
 
-            
             # Sampling the Proposal to match with format of fcn_mask
             bbox_assigner = build_assigner(self.train_cfg.rcnn.assigner)
             bbox_sampler  = build_sampler(self.train_cfg.rcnn.sampler, context=self)            
@@ -120,37 +114,46 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
             for i in range(num_imgs):
                 ith_proposal = proposal_list[i]
                 ith_proposal = gt_bboxes[i]
-                assign_result = bbox_assigner.assign(ith_proposal,
-                                                        gt_bboxes[i],
-                                                        gt_bboxes_ignore[i],
-                                                        gt_labels[i])
+
+                assign_result = bbox_assigner.assign(ith_proposal, gt_bboxes[i], gt_bboxes_ignore[i], gt_labels[i])
                 sampling_result = bbox_sampler.sample(
-                    assign_result,
-                    ith_proposal,
-                    gt_bboxes[i],
-                    gt_labels[i],
-                    feats=[lvl_feat[i][None] for lvl_feat in x])
-                    
+                    assign_result, ith_proposal, gt_bboxes[i], gt_labels[i],
+                    feats=[lvl_feat[i][None] for lvl_feat in x],
+                )
                 sampling_results.append(sampling_result)
 
+            mask_targets = self.mask_head.get_target(sampling_results, gt_masks, self.train_cfg.rcnn)
+            pos_labels = torch.cat([res.pos_gt_labels for res in sampling_results])
 
-            rois = bbox2roi(
-                        [res.pos_bboxes for res in sampling_results])
-        
-            gt_rois = bbox2roi(gt_bboxes)
+            rois = bbox2roi([res.pos_bboxes for res in sampling_results])
+            mask_feats = self.mask_roi_extractor(x[:self.mask_roi_extractor.num_inputs], rois)
 
-            mask_feats = self.mask_roi_extractor(
-                        x[:self.mask_roi_extractor.num_inputs], rois)
-            mask_pred = self.mask_head(mask_feats)
-            mask_targets = self.mask_head.get_target(sampling_results,
-                                                    gt_masks,
-                                                    self.train_cfg.rcnn)
-            pos_labels = torch.cat(
-                    [res.pos_gt_labels for res in sampling_results])
+            mask_targets = self.mask_head.get_target(sampling_results,gt_masks,self.train_cfg.rcnn)
+            pos_labels = torch.cat([res.pos_gt_labels for res in sampling_results])
 
-            loss_mask = self.mask_head.loss(mask_pred, mask_targets,
-                                                pos_labels)
+
+            # mask_pred = self.mask_head(mask_feats)       
+            ### add manyfold mix-up 
+            if pos_labels.shape[0]>0:
+                mask_pred, out_cls, target_reweighted  = self.mask_head(mask_feats, pos_labels, manyfold_mixup=True, mixup_hidden=True)
+                loss_cls_extra = {'loss_cls_extra': F.binary_cross_entropy_with_logits(out_cls, target_reweighted).view(1)}
+                losses.update(loss_cls_extra)
+            else:
+                mask_pred = self.mask_head(mask_feats, pos_labels, mix_up=False, manyfold_mixup=False, mixup_hidden=True)
+
+            loss_mask = self.mask_head.loss(mask_pred, mask_targets,pos_labels)
             losses.update(loss_mask)
+
+            if self.with_semseg:
+                gt_fg_mask = [ mask.sum(axis=0).clip(0,1)[None,None,...].astype('int64')
+                                for mask in gt_masks ]
+                gt_fg_mask = torch.from_numpy(np.concatenate(gt_fg_mask)).cuda()
+                mask_pred, new_outs_cls = self.semseg_head(x, outs)
+                loss_semseg = self.semseg_head.loss(mask_pred, 
+                                                    gt_fg_mask, 
+                                                    new_outs_cls) 
+                losses.update(loss_semseg)
+
         return losses
 
     def simple_test(self, img, img_meta, rescale=False):
@@ -197,14 +200,23 @@ class MaskSingleStateDetector(BaseDetector, MaskTestMixin):
                 x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
             if self.with_shared_head:
                 mask_feats = self.shared_head(mask_feats)
-            # import ipdb; ipdb.set_trace()
             mask_pred = self.mask_head(mask_feats)
+
             segm_result = self.mask_head.get_seg_masks(mask_pred, _bboxes,
                                                        det_labels,
                                                        self.test_cfg.rcnn,
                                                        ori_shape, scale_factor,
                                                        rescale)
+            
         return segm_result
+
+    def get_seg_masks(self, mask_pred, ori_shape, scale_factor, rescale, threshold=0.5):
+        if rescale:
+            mask_pred = F.interpolate(mask_pred, size=ori_shape[:2], mode='bilinear', align_corners=True)
+
+        mask_pred = mask_pred.sigmoid()
+        mask_pred = (mask_pred > threshold).float()
+        return mask_pred
 
     def aug_test(self, imgs, img_metas, rescale=False):
         raise NotImplementedError

@@ -1,3 +1,18 @@
+# Server adaptation
+from socket import gethostname
+if ('184' in gethostname()) or ('185' in gethostname()):
+	use_gn = False
+	lr_start = 1e-2
+	lr_end = 1e-4
+	imgs_per_gpu = 8
+	total_epochs = 12
+	resume_from = None
+	pretrained = None
+	img_scale = (1280, 768)
+	data_root = '/home/member/Workspace/dataset/coco/'
+	work_dir = '/home/member/Workspace/thuync/checkpoints/polar_b1_semseg/'
+	load_from = '/home/member/Workspace/phase3/polar-B1-FPN/epoch_9.pth'
+	fp16 = dict(loss_scale=512.)
 
 # Debug
 debug = False
@@ -53,54 +68,39 @@ else:
 	norm_cfg = None
 
 fpn_channels = 256
-
 model = dict(
-	type='PolarMask',
-	pretrained=None,
+    type='CCFCOS',
+    pretrained=None,
 	backbone=dict(
 		type='TimmCollection',
 		model_name='efficientnet_b1',
 	),
-	neck=dict(
-		type='FPN',
-		in_channels=[24, 40, 112, 320],
-		out_channels=fpn_channels,
-		start_level=1,
-		add_extra_convs=True,
-		extra_convs_on_inputs=False,  # use P5
-		num_outs=5,
-		relu_before_extra_convs=True,
-	),
-	bbox_head=dict(
-		type='PolarMask_Head',
-		num_classes=81,
-		in_channels=fpn_channels,
-		stacked_convs=4,
-		feat_channels=fpn_channels,
-		strides=[8, 16, 32, 64, 128],
-		loss_cls=dict(
-			type='FocalLoss',
-			use_sigmoid=True,
-			gamma=2.0,
-			alpha=0.25,
-			loss_weight=1.0),
-		loss_bbox=dict(type='IoULoss', loss_weight=1.0),
-		loss_centerness=dict(
-			type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-	),
-	semseg_head=None,
-	# semseg_head=dict(
-	# 	type='SemSegHead',
-	# 	num_convs=4,
-	# 	in_channels=fpn_channels,
-	# 	conv_kernel_size=3,
-	# 	conv_out_channels=fpn_channels,
-	# 	input_index=0,
-	# 	upsample_method='bilinear',
-	# 	upsample_ratio=2,
-	# 	num_classes=1,
-	# 	loss_mask=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-	# ),
+    neck=dict(
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        start_level=1,
+        add_extra_convs=True,
+        extra_convs_on_inputs=False,  # use P5
+        num_outs=5,
+        relu_before_extra_convs=True),
+    bbox_head=dict(
+        type='CCFCOSHead',
+        num_classes=81,
+        in_channels=256,
+        stacked_convs=4,
+        feat_channels=256,
+        strides=[8, 16, 32, 64, 128],
+        loss_cls=dict(
+            type='FocalLoss',
+            use_sigmoid=True,
+            gamma=2.0,
+            alpha=0.25,
+            loss_weight=1.0),
+        loss_bbox=dict(type='IoULoss', loss_weight=1.0),
+        loss_centerness=dict(
+            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)
+        ),
 	yolact_proto_head=dict(
 		type='YolactProtoHead',
 		num_convs=3,

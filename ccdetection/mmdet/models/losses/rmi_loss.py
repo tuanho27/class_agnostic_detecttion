@@ -87,6 +87,7 @@ class RMILoss(nn.Module):
 		# get the valid label and logits
 		# valid label, [N, C, H, W]
 		label_mask_3D = labels_4D < self.num_classes
+		import ipdb; ipdb.set_trace()
 		valid_onehot_labels_4D = F.one_hot(labels_4D.long() * label_mask_3D.long(), num_classes=self.num_classes).float()
 		label_mask_3D = label_mask_3D.float()
 		valid_onehot_labels_4D = valid_onehot_labels_4D * label_mask_3D.unsqueeze(dim=3)
@@ -117,6 +118,7 @@ class RMILoss(nn.Module):
 
 		# valid label
 		valid_onehot_labels_4D = F.one_hot(labels_4D.long() * label_mask_3D.long(), num_classes=self.num_classes).float()
+		# import ipdb; ipdb.set_trace()
 		label_mask_3D = label_mask_3D.float()
 		label_mask_flat = label_mask_3D.view([-1, ])
 		valid_onehot_labels_4D = valid_onehot_labels_4D * label_mask_3D.unsqueeze(dim=3)

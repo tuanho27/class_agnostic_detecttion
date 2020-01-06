@@ -882,7 +882,6 @@ def _gen_mnasnet_a1(channel_multiplier, num_classes=1000, **kwargs):
     Args:
       channel_multiplier: multiplier to number of channels per layer.
     """
-    import ipdb; ipdb.set_trace()
     arch_def = [
         # stage 0, 112x112 in
         ['ds_r1_k3_s1_e1_c16_noskip'],

@@ -22,6 +22,7 @@ class FCOSMask(MaskSingleStateDetector):
                  bbox_head,
                  mask_roi_extractor,
                  mask_head,
+                 semseg_head,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
@@ -32,6 +33,7 @@ class FCOSMask(MaskSingleStateDetector):
             bbox_head,
             mask_roi_extractor,
             mask_head,
+            semseg_head,
             train_cfg,
             test_cfg,
             pretrained,
@@ -40,7 +42,12 @@ class FCOSMask(MaskSingleStateDetector):
         self.mask_roi_extractor = builder.build_roi_extractor(
             mask_roi_extractor)
         self.mask_head = builder.build_head(mask_head)
-
+        if semseg_head is not None:
+            self.semseg_head = builder.build_head(semseg_head)
+            self.semseg_head.init_weights    
+    @property
+    def with_semseg(self):
+        return hasattr(self, 'semseg_head') and self.semseg_head is not None
     # def __init__(self,
     #              backbone,
     #              neck,

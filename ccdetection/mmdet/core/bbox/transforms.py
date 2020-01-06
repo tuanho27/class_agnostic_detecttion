@@ -251,7 +251,44 @@ def distance2bbox(points, distance, max_shape=None):
 #         mask_point.append(mask_point)
 #     return torch.stack(mask_points, -1)
 
+def sanitize_coordinates(_x1, _x2, max_size, padding=0, cast=False, scale=1.0):
+    _x1 = _x1 * scale
+    _x2 = _x2 * scale
+    x1 = torch.min(_x1, _x2)
+    x2 = torch.max(_x1, _x2)
+    if padding != 0:
+        if 0 < padding < 1:
+            padding = torch.clamp((padding * (x2 - x1 + 1).float()), min=1)
+        else:
+            padding = x1.new_tensor(padding)
+        x1 = torch.clamp(x1 - padding, min=0)
+        x2 = torch.clamp(x2 + padding, max=max_size)
+    if cast:
+        x1 = x1.long()
+        x2 = x2.long()
+    return x1, x2
 
+def mask2result(masks, labels, num_classes, thr=0.5):
+    """Convert detection results to a list of numpy arrays.
+    Args:
+        masks (Tensor): shape (n, h, w)
+        labels (Tensor): shape (n, )
+        num_classes (int): class number, including background class
+        thr (float): threshold to binary the masks
+    Returns:
+        list(ndarray): bbox results of each class
+    """
+    n = masks.size(0)
+    cls_segms = [[] for _ in range(num_classes - 1)]
+
+    masks = (masks > thr).cpu().numpy()
+    labels = labels.cpu().numpy()
+    for i in range(n):
+        mask = masks[i].astype(np.uint8)
+        rle = mask_util.encode(
+            np.array(mask[:, :, np.newaxis], order='F'))[0]
+        cls_segms[labels[i]].append(rle)
+    return cls_segms
 
 
 

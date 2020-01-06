@@ -19,12 +19,13 @@ from .two_stage import TwoStageDetector
 from .mask_single_stage import MaskSingleStateDetector
 from .retinamask import RetinaMask
 from .polarmask import PolarMask
+from .rdsnet import RDSNet
 
 __all__ = [
     'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
     'FastRCNN', 'FasterRCNN', 'MaskRCNN', 'CascadeRCNN', 'HybridTaskCascade',
     'DoubleHeadRCNN', 'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN',
-    'RepPointsDetector', 'FOVEA', 'MaskScoringRCNN_Multiply',
+    'RepPointsDetector', 'FOVEA', 'MaskScoringRCNN_Multiply','RDSNet',
     #CC
     'MaskSingleStateDetector', 'RetinaMask','FCOSMask','PolarMask',
 ]
