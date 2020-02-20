@@ -5,7 +5,7 @@
 #WORK_DIR='./work_dirs/rdsnet_b1_fpn_1x/'
 #CONFIG_FILE='ccdetection/configs/retina_mask/retinamask_b1_fpn_1x.py'
 CONFIG_FILE='ccdetection/configs/fcos_mask/fcos_mask_b1_fp16.py'
-WORK_DIR='work_dirs/fcos_mask_r50_fp16/'
+WORK_DIR='work_dirs/fcos_mask_b1_fp16_seg'
 
 th=12
 CHECKPOINT_FILE="${WORK_DIR}/epoch_${th}.pth"
