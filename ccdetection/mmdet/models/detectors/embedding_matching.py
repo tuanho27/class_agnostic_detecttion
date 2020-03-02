@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from ..utils import ConvModule
 import math
 from scipy.spatial import distance as dist
+from time import time
 
 class SiameseMatching(nn.Module):
     """
@@ -24,7 +25,7 @@ class SiameseMatching(nn.Module):
 
     def forward(self, pairs_positive, pairs_positive_feats_0,pairs_positive_feats_1,
                         pairs_negative, pairs_negative_feats_0,pairs_negative_feats_1):
-
+        start = time()
         loss_positive = 0
         for i in range(pairs_positive.size()[0]):
             pairs_positive_fc_0 = self.siamese_embedding(pairs_positive_feats_0[i].view(-1))
@@ -44,13 +45,14 @@ class SiameseMatching(nn.Module):
                 loss_negative += torch.log(1 - dist.euclidean(pairs_negative_fc_0,pairs_negative_fc_1))
                 
         loss = loss_positive/pairs_positive.size()[0] + loss_negative/pairs_negative.size()[0]
+        end = time() - start
+        print("Time for siamese", end)
         return dict(loss_siamese=loss)
 
 
 class RelationMatching(nn.Module):
     """
     Relation Matching loss
-    Takes a batch of embeddings and corresponding labels.
     Positive and negative pairs
     """
 
@@ -75,6 +77,7 @@ class RelationMatching(nn.Module):
         # self.loss = nn.Cross
     def forward(self, pairs_positive, pairs_positive_feats_0,pairs_positive_feats_1,
                             pairs_negative, pairs_negative_feats_0,pairs_negative_feats_1):
+        start = time()
         
         loss_positive = 0        
         pairs_positive_cat = torch.cat((pairs_positive_feats_0,pairs_positive_feats_1),dim=1)
@@ -93,20 +96,7 @@ class RelationMatching(nn.Module):
         for i in range(pairs_negative.size()[0]):
             loss_negative += (torch.sigmoid(self.relation_module_fc(pairs_negative_cat[i].view(-1))) - 1)**2
 
-        # for i in range(pairs_positive.size()[0]):
-        #     pairs_positive_cat = torch.cat((pairs_positive_feats_0[i][None,:],pairs_positive_feats_1[i][None,:]),dim=1)
-        #     for i in range(3):
-        #         pairs_positive_cat = self.relation_module[i](pairs_positive_cat)
-        #         pairs_positive_cat = self.relation_module_pool(pairs_positive_cat)
-        #     loss_positive += (torch.sigmoid(self.relation_module_fc(pairs_positive_cat.view(-1))) - 1)**2
-
-        # loss_negative = 0
-        # for i in range(pairs_negative.size()[0]):
-        #     pairs_negative_cat = torch.cat((pairs_negative_feats_0[i][None,:],pairs_negative_feats_1[i][None,:]),dim=1)
-        #     for i in range(3):
-        #         pairs_negative_cat = self.relation_module[i](pairs_negative_cat)
-        #         pairs_negative_cat = self.relation_module_pool(pairs_negative_cat)
-        #     loss_negative += (torch.sigmoid(self.relation_module_fc(pairs_negative_cat.view(-1))))**2
-                
         loss = loss_negative/pairs_negative.size()[0] + loss_negative/pairs_negative.size()[0]
+        end = time() - start
+        print("Time for relation", end)
         return dict(loss_relation=loss)
