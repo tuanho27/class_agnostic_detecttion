@@ -1,5 +1,5 @@
 # model settings
-imgs_per_gpu=1
+imgs_per_gpu=2
 model = dict(
     type='FasterRCNN',
     pretrained='torchvision://resnet50',
@@ -165,7 +165,7 @@ lr_config = dict(policy='step', step=[3])  # actual epoch = 3 * 3 = 9
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=1,
+    interval=10,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')

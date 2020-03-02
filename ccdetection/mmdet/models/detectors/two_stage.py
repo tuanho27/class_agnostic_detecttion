@@ -437,10 +437,10 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                             x1[:self.bbox_roi_extractor.num_inputs], pairs_negative_rois_1)
 
         # Siamese matching loss
-        loss_siamese = self.siamese_matching(pairs_positive, pairs_positive_feats_0,pairs_positive_feats_1,
-                                             pairs_negative, pairs_negative_feats_0,pairs_negative_feats_1)
+        # loss_siamese = self.siamese_matching(pairs_positive, pairs_positive_feats_0,pairs_positive_feats_1,
+                                            #  pairs_negative, pairs_negative_feats_0,pairs_negative_feats_1)
 
-        losses.update(loss_siamese)
+        # losses.update(loss_siamese)
         # relation matching loss
         loss_relation = self.relation_matching(pairs_positive, pairs_positive_feats_0, pairs_positive_feats_1,
                                              pairs_negative, pairs_negative_feats_0,pairs_negative_feats_1)
@@ -460,8 +460,6 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                     self.train_cfg.rcnn)
         loss_bbox_img1 = self.bbox_head.loss(cls_score_img1, bbox_pred_img1,*bbox_targets_img1)
         losses.update(loss_bbox_img1)
-
-        # import ipdb; ipdb.set_trace()
 
         ## Mask head forward and loss
         # if self.with_mask:
