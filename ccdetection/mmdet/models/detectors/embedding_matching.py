@@ -87,16 +87,15 @@ class RelationMatching(nn.Module):
         for i in range(pairs_positive.size()[0]):
             loss_positive += (torch.sigmoid(self.relation_module_fc(pairs_positive_cat[i].view(-1))) - 1)**2
 
-
         pairs_negative_cat = torch.cat((pairs_negative_feats_0,pairs_negative_feats_1),dim=1)
         loss_negative = 0
         for i in range(3):
             pairs_negative_cat = self.relation_module[i](pairs_negative_cat)
             pairs_negative_cat = self.relation_module_pool(pairs_negative_cat)
         for i in range(pairs_negative.size()[0]):
-            loss_negative += (torch.sigmoid(self.relation_module_fc(pairs_negative_cat[i].view(-1))) - 1)**2
+            loss_negative += (torch.sigmoid(self.relation_module_fc(pairs_negative_cat[i].view(-1))))**2
 
         loss = loss_negative/pairs_negative.size()[0] + loss_negative/pairs_negative.size()[0]
         end = time() - start
-        print("Time for relation", end)
+        # print("Time for relation", end)
         return dict(loss_relation=loss)
