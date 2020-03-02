@@ -60,6 +60,12 @@ class BBoxHead(nn.Module):
             self.fc_reg = nn.Linear(in_channels, out_dim_reg)
         self.debug_imgs = None
 
+        ## init matching modules and losses
+        # Siamese Net
+
+
+        # Relation Net
+
     def init_weights(self):
         if self.with_cls:
             nn.init.normal_(self.fc_cls.weight, 0, 0.01)
@@ -93,6 +99,7 @@ class BBoxHead(nn.Module):
             reg_classes,
             target_means=self.target_means,
             target_stds=self.target_stds)
+        # import ipdb; ipdb.set_trace()
         return cls_reg_targets
 
     @force_fp32(apply_to=('cls_score', 'bbox_pred'))

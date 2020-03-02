@@ -20,6 +20,8 @@ from .mask_single_stage import MaskSingleStateDetector
 from .retinamask import RetinaMask
 from .polarmask import PolarMask
 from .rdsnet import RDSNet
+from .embedding_matching import RelationMatching, SiameseMatching
+
 
 __all__ = [
     'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -28,4 +30,5 @@ __all__ = [
     'RepPointsDetector', 'FOVEA', 'MaskScoringRCNN_Multiply','RDSNet',
     #CC
     'MaskSingleStateDetector', 'RetinaMask','FCOSMask','PolarMask',
+    'RelationMatching', 'SiameseMatching'
 ]

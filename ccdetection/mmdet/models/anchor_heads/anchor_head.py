@@ -169,7 +169,6 @@ class AnchorHead(nn.Module):
 
         (labels_list, label_weights_list, bbox_targets_list, bbox_weights_list, num_total_pos, num_total_neg) = cls_reg_targets
         num_total_samples = num_total_pos + num_total_neg if self.sampling else num_total_pos
-
         losses_cls, losses_bbox = multi_apply(
             self.loss_single, cls_scores, bbox_preds,
             labels_list, label_weights_list, bbox_targets_list, bbox_weights_list,
@@ -229,8 +228,16 @@ class AnchorHead(nn.Module):
                 device=device) for i in range(num_levels)
         ]
         result_list = []
-        # import ipdb; ipdb.set_trace()
-        # for img_id in range(len(img_metas)):
+        ################
+        # Test code
+        # img_id = 0
+        # cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
+        # bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]
+        # img_shape = img_metas[img_id]['img_shape']
+        # scale_factor = img_metas[img_id]['scale_factor']
+        # proposals = self.get_bboxes_single(cls_score_list, bbox_pred_list, mlvl_anchors, img_shape, scale_factor, cfg, rescale)
+        ################
+
         def f(img_id):
             cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
             bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]

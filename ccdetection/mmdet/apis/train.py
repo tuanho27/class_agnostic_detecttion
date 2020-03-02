@@ -40,9 +40,9 @@ def batch_processor(model, data, train_mode):
     #     model.module._print_running_time()
 
     loss, log_vars = parse_losses(losses)
-
     outputs = dict(
-        loss=loss, log_vars=log_vars, num_samples=len(data['img'].data))
+        loss=loss, log_vars=log_vars, num_samples=len(data['img'][0].data) 
+                                    if isinstance(data['img'],list) else len(data['img'].data))
 
     return outputs
 

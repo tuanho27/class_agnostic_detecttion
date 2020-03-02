@@ -63,6 +63,16 @@ class BaseDetector(nn.Module):
         pass
 
     @abstractmethod
+    def forward_pair_train(self, data0, data1, **kwargs):
+        """
+        Args:
+        data0: including all meta information of image 0
+        data1: including all meta information of image 1
+
+        """
+        pass
+
+    @abstractmethod
     def simple_test(self, img, img_meta, **kwargs):
         pass
 
@@ -117,7 +127,10 @@ class BaseDetector(nn.Module):
         """
         # import ipdb; ipdb.set_trace()
         if return_loss:
-            return self.forward_train(img, img_meta, **kwargs)
+            if len(img) == 2:
+                return self.forward_pair_train(img, img_meta, **kwargs)
+            else:
+                return self.forward_train(img, img_meta, **kwargs)
         else:
             return self.forward_test(img, img_meta, **kwargs)
 
