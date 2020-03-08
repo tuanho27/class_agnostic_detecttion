@@ -125,12 +125,11 @@ class BaseDetector(nn.Module):
         should be double nested (i.e.  List[Tensor], List[List[dict]]), with
         the outer list indicating test time augmentations.
         """
-        # import ipdb; ipdb.set_trace()
         if return_loss:
-            if len(img) == 2:
-                return self.forward_pair_train(img, img_meta, **kwargs)
-            else:
-                return self.forward_train(img, img_meta, **kwargs)
+            # if len(img) == 2:
+            #     return self.forward_pair_train(img, img_meta, **kwargs)
+            # else:
+            return self.forward_train(img, img_meta, **kwargs)
         else:
             return self.forward_test(img, img_meta, **kwargs)
 

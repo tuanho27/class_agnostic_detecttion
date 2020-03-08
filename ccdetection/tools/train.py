@@ -11,6 +11,9 @@ from mmdet.apis import (get_root_logger, init_dist, set_random_seed,
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 
+from mmdet.datasets import DATASETS, build_dataloader
+from torch.utils.data import Dataset, DataLoader
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
@@ -110,6 +113,23 @@ def main():
             CLASSES=datasets[0].CLASSES)
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
+
+    # To Gen Pair dataset
+    # datasets = datasets if isinstance(datasets, (list, tuple)) else [datasets]
+    # data_loaders = [ 
+    #     build_dataloader(
+    #         ds,
+    #         cfg.data.imgs_per_gpu,
+    #         cfg.data.workers_per_gpu,
+    #         cfg.gpus,
+    #         shuffle=True,
+    #         dist=False) for ds in datasets]
+    # count = 0
+    # print(data_loaders)
+    # for i, data_batch in enumerate(data_loaders[0]):
+    #     print("Generate ...")
+    #     count +=1
+
     train_detector(
         model,
         datasets,
@@ -117,7 +137,6 @@ def main():
         distributed=distributed,
         validate=args.validate,
         logger=logger)
-
 
 if __name__ == '__main__':
     main()

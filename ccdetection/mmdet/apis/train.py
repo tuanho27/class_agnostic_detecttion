@@ -36,14 +36,11 @@ def parse_losses(losses):
 
 def batch_processor(model, data, train_mode):
     losses = model(**data)
-    # if hasattr(model.module, '_print_running_time'):
-    #     model.module._print_running_time()
-
     loss, log_vars = parse_losses(losses)
     outputs = dict(
         loss=loss, log_vars=log_vars, num_samples=len(data['img'][0].data) 
                                     if isinstance(data['img'],list) else len(data['img'].data))
-
+    # outputs = 0    
     return outputs
 
 

@@ -1,6 +1,7 @@
 import os.path as osp
-
+import os
 import mmcv
+import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
 import random
@@ -190,10 +191,10 @@ class CustomDataset(Dataset):
         return self.pipeline(results)
 
 
-
 @DATASETS.register_module
 class CustomPairDataset(Dataset):
     CLASSES = None
+    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -201,8 +202,16 @@ class CustomPairDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
+                #  txt_file = './list_pairs_img.txt', counter = 0,
+                 txt_file = './list_pairs_img_voc2007.txt', counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
-        # import ipdb; ipdb.set_trace()
+        
+        self.txt_file = open(txt_file,"r")
+        # self.txt_file = open(txt_file,"w")
+        self.list_pair_ids = self.txt_file.readlines()
+
+        self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
+        self.counter = counter
         self.ann_file = ann_file
         self.data_root = data_root
         self.img_prefix = img_prefix
@@ -225,7 +234,7 @@ class CustomPairDataset(Dataset):
         # load annotations (and proposals)
         timer = mmcv.Timer()
         self.img_infos = self.load_annotations(self.ann_file)
-        print("Dataset Length: ",len(self.img_infos))
+        print("Dataset Length: ",len(self))
         print("Loaded annotation times:", timer.since_start())
         if num_samples is not None:
             self.img_infos = self.img_infos[:num_samples]
@@ -246,10 +255,11 @@ class CustomPairDataset(Dataset):
         # processing pipeline
         self.pipeline = Compose(pipeline)
         self.prepare_train_img(0)
-        # import ipdb; ipdb.set_trace()
-
+        
     def __len__(self):
-        return len(self.img_infos)
+        # return len(self.img_infos)
+        return len(self.list_pair_ids)
+
 
     def load_annotations(self, ann_file):
         return mmcv.load(ann_file)
@@ -270,8 +280,13 @@ class CustomPairDataset(Dataset):
     def common_member(self, a, b): 
         a_set = set(a) 
         b_set = set(b) 
-        if (a_set & b_set): 
-            return True 
+        common_list = (a_set & b_set)
+        if common_list: 
+            # return True
+            if set(self.class_ignore_idx) & a_set or set(self.class_ignore_idx) & b_set:
+                return False
+            else:
+                return True 
         else: 
             return False
 
@@ -290,7 +305,7 @@ class CustomPairDataset(Dataset):
         otherwise group 0.
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
-        for i in range(len(self)):
+        for i in range(len(self.img_infos)):
             img_info = self.img_infos[i]
             if img_info['width'] / img_info['height'] > 1:
                 self.flag[i] = 1
@@ -310,18 +325,53 @@ class CustomPairDataset(Dataset):
             return data
             
     def prepare_train_img(self, idx):
-        CLASSES_IGNORE = ['chair', 'cow', 'diningtable', 'dog', 'horse']
-        idx0 = idx
-        img0_info = self.img_infos[idx0]
-        ann0_info = self.get_ann_info(idx0)
-        # if ann0_info['labels'] in CLASSES_IGNORE:
-        for i in range(1,len(self.img_infos)):
-            idx1 = int((i + random.randint(1,len(self.img_infos)))/2) 
-            if idx1 != idx:
-                img1_info = self.img_infos[idx1]
-                ann1_info = self.get_ann_info(idx1)
-                if self.common_member(ann0_info['labels'], ann1_info['labels']):
-                    break
+        
+        idx0 = list(self.list_pair_ids[idx].split(","))[0]
+        img0_info = self.img_infos[int(idx0)]
+        ann0_info = self.get_ann_info(int(idx0))
+
+        ################# offline pair image choice
+        idx1 = list(self.list_pair_ids[idx].split(","))[1]
+        # print("IDX ", idx0, idx1)
+        img1_info = self.img_infos[int(idx1)]
+        ann1_info = self.get_ann_info(int(idx1))
+
+        ################# Random choice
+        # for i in range(1,len(self.img_infos)):
+        #     idx1 = int((i + random.randint(1,len(self.img_infos)))/2) 
+        #     if idx1 != idx:
+        #         img1_info = self.img_infos[idx1]
+        #         ann1_info = self.get_ann_info(idx1)
+        #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
+        #             break
+        
+        ################## Gen data list pairs
+        # count = 0
+        # list_pairs = []
+        # self.counter+=1
+        #
+        # for idx1 in range(1,len(self.img_infos)):
+        #     # idx1 = random.randint(1,len(self.img_infos)) 
+        #     if idx1 != idx0:
+        #         img1_info = self.img_infos[idx1]
+        #         ann1_info = self.get_ann_info(idx1)
+        #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
+        #             # print("IDX ", idx0, idx1)
+        #             list_pairs.append(idx1)
+        #             # count += 1
+        #             # if count == 20:
+        #                 # break 
+        # if len(list_pairs) > 0:
+        #     for i in range(0,20):
+        #         idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
+        #         if idx1 != idx0:
+        #             print("IDX ", idx0, idx1)
+        #             line = str(idx0)  + "," + str(idx1) + "\n"
+        #             self.txt_file.write(str(line))
+
+        # if self.counter == len(self.img_infos) - 1:
+        #     self.txt_file.close()
+        ###################
 
         results_0 = dict(img_info=img0_info, ann_info=ann0_info)
         results_1 = dict(img_info=img1_info, ann_info=ann1_info)

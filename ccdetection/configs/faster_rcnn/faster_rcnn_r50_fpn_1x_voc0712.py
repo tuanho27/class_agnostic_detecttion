@@ -1,7 +1,7 @@
 # model settings
-imgs_per_gpu=2
+imgs_per_gpu=3
 model = dict(
-    type='FasterRCNN',
+    type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',
@@ -44,14 +44,24 @@ model = dict(
         reg_class_agnostic=False,
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)))
+        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+    siamese_matching_head=dict(
+        type='SiameseMatching',
+        in_channels=256,
+        feat_channels=128,
+        ),
+    relation_matching_head=dict(
+        type='RelationMatching',
+        in_channels=256,
+        feat_channels=128,
+        ))
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(
         assigner=dict(
             type='MaxIoUAssigner',
-            pos_iou_thr=0.7,
-            neg_iou_thr=0.3,
+            pos_iou_thr=0.6, #0.7 -> 0.6
+            neg_iou_thr=0.4, # 0.3 -> 0.4
             min_pos_iou=0.3,
             ignore_iof_thr=-1),
         sampler=dict(
@@ -59,17 +69,16 @@ train_cfg = dict(
             num=256,
             pos_fraction=0.5,
             neg_pos_ub=-1,
-            add_gt_as_proposals=False),
+            add_gt_as_proposals=True),
         allowed_border=0,
         pos_weight=-1,
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=2000,
-        nms_post=2000,
-        max_num=2000,
-        nms_thr=0.7,
-        num_post_proposal=imgs_per_gpu*64,
+        nms_pre=64,
+        nms_post=64,
+        max_num=64,
+        nms_thr=0.5, #0.7 -> 0.5
         min_bbox_size=0),
     rcnn=dict(
         assigner=dict(
@@ -108,7 +117,7 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(1000, 600), keep_ratio=True),
+    dict(type='Resize', img_scale=(900, 600), keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -119,7 +128,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(1000, 600),
+        img_scale=(900, 600),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -132,7 +141,7 @@ test_pipeline = [
 ]
 data = dict(
     imgs_per_gpu=imgs_per_gpu,
-    workers_per_gpu=6,
+    workers_per_gpu=4,
     train=dict(
         # type='RepeatDataset',
         # times=3,
@@ -143,8 +152,8 @@ data = dict(
                 # data_root + 'VOC2012/ImageSets/Main/trainval.txt'
             # ],
             # img_prefix=[data_root + 'VOC2007/', data_root + 'VOC2012/'],
-            ann_file=data_root + 'VOC2012/ImageSets/Main/trainval.txt',
-            img_prefix=data_root + 'VOC2012/',
+            ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
+            img_prefix=data_root + 'VOC2007/',
             pipeline=train_pipeline), #),
     val=dict(
         type=dataset_type,
@@ -165,7 +174,7 @@ lr_config = dict(policy='step', step=[3])  # actual epoch = 3 * 3 = 9
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
@@ -176,6 +185,7 @@ total_epochs = 12  # actual epoch = 4 * 3 = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_voc0712'
-load_from = None
+# load_from = None
+load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None
 workflow = [('train', 1)]

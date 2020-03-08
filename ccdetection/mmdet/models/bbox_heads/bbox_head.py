@@ -60,12 +60,6 @@ class BBoxHead(nn.Module):
             self.fc_reg = nn.Linear(in_channels, out_dim_reg)
         self.debug_imgs = None
 
-        ## init matching modules and losses
-        # Siamese Net
-
-
-        # Relation Net
-
     def init_weights(self):
         if self.with_cls:
             nn.init.normal_(self.fc_cls.weight, 0, 0.01)

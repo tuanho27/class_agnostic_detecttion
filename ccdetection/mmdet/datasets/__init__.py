@@ -12,7 +12,7 @@ from .xml_style import XMLDataset, XMLPairDataset
 from .mpii import MPIIDataset
 
 __all__ = [
-    'CustomDataset', 'XMLDataset','VOCPairDataset','XMLPairDataset', 'CocoDataset', 'VOCDataset',
+    'CustomDataset', 'CustomPairDataset','XMLDataset','VOCPairDataset','XMLPairDataset', 'CocoDataset', 'VOCDataset',
     'CityscapesDataset', 'GroupSampler', 'DistributedGroupSampler',
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
     'DATASETS', 'build_dataset',
