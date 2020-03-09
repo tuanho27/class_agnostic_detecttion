@@ -103,7 +103,7 @@ class SiameseMatching(nn.Module):
 
         end = time() - start
         # print("Time for siamese", end)
-        return dict(loss_siamese=losses)
+        return dict(loss_siamese=loss_siamese)
 
 
 @HEADS.register_module
@@ -201,4 +201,4 @@ class RelationMatching(nn.Module):
 
 
         # print("Time for relation", time()-start)
-        return dict(loss_relation=losses)
+        return dict(loss_relation=loss_relation)

@@ -163,7 +163,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                         proposals=None):
         losses = dict()
         rpn_outputs = []
-        start = time()        
         for i, im in enumerate(img):
             rpn_output = self.forward_train_single(im, img_meta[i],
                                                        gt_bboxes[i],
@@ -174,8 +173,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             rpn_outputs.append(rpn_output)
             losses.update(rpn_output['rpn_losses'])
 
-        end1 = time()
-        # print("RPN infer time:", end1 - start)
         if self.with_bbox:
             ## Prepare positive pairs and negative pairs:
             foreground_index_0 = rpn_outputs[0]['proposal_label'].nonzero()
@@ -191,6 +188,8 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
             if len(foreground_index_0) == 0 or len(foreground_index_1)==0:
                 pass 
+                print("Length Pairs: ", 0)
+
             else:
                 for idx0 in foreground_index_0:
                     for idx1 in foreground_index_1:
@@ -221,7 +220,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                             pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
                                                                 rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
 
-
+                print("Length Pairs: ", len(pairs))
                 if len(pairs) > 0:
                     pairs = torch.stack(pairs) 
                     pairs_feats = torch.stack(pairs_feats)  
@@ -232,20 +231,17 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                     ## Siamese matching loss
                     if self.siamese_matching_head is not None:
                         loss_siamese = self.siamese_matching_head(pairs, pairs_targets, pairs_feats, 
-                                                                                pairs_bbox_target, pairs_bbox_target_weight)
+                                                                    pairs_bbox_target, pairs_bbox_target_weight)
                         losses.update(loss_siamese)
 
                     ## relation matching loss
                     if self.relation_matching_head is not None:
                         loss_relation = self.relation_matching_head(pairs, pairs_targets, pairs_feats, 
-                                                                                pairs_bbox_target, pairs_bbox_target_weight)
+                                                                    pairs_bbox_target, pairs_bbox_target_weight)
                         losses.update(loss_relation)
 
                 else:
                     pass
-
-            end2 = time()
-            # print("Prepare pairs time:", end2 - end1)
 
         return losses
 
@@ -270,15 +266,13 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
         ## Output candidate proposals 
         if self.with_rpn:
             rpn_outs = self.rpn_head(x)
-            rpn_loss_inputs = rpn_outs + (gt_bboxes, gt_labels,img_meta,
-                                          self.train_cfg.rpn)
+            rpn_loss_inputs = rpn_outs + (gt_bboxes,img_meta,
+                                                self.train_cfg.rpn)
             rpn_losses = self.rpn_head.loss(
                 *rpn_loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
 
-            # proposal_cfg = self.train_cfg.get('rpn_proposal',self.test_cfg.rpn)
             proposal_cfg = self.train_cfg.get('rpn_proposal',self.train_cfg.rpn)
-            proposal_inputs = rpn_outs + (img_meta, proposal_cfg, rpn_losses['labels_list'], 
-                                                rpn_losses['bboxes_list'], rpn_losses['bboxes_weight'], gt_bboxes, gt_labels)
+            proposal_inputs = rpn_outs + (img_meta, self.train_cfg,  gt_bboxes, gt_labels)
             proposal_list, proposal_label, proposal_bbox, proposal_bbox_weight  = self.rpn_head.get_proposals_w_label(*proposal_inputs)
 
         else:
@@ -320,29 +314,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                      proposal_bbox =torch.cat(proposal_bbox),
                      proposal_bbox_weight = torch.cat(proposal_bbox_weight),
                      bbox_feats=bbox_feats)
-
-
-    def get_post_proposals(self, rois, roi_feats, img_meta, rescale=False):
-        """This function supports to get final bbox base on rpn proposals.
-           This step usually be used in test phase, but re-used in training to the purpose of 
-           preparing positive proposal pair as paper https://ieeexplore.ieee.org/document/8606132
-        """
-        assert self.with_bbox, "Bbox head must be implemented."
-        cls_score, bbox_pred = self.bbox_head(roi_feats)
-        img_shape = img_meta[0]['img_shape']
-        scale_factor = img_meta[0]['scale_factor']
-        rcnn_cfg = dotdict(dict(score_thr=0.0, 
-                             nms=dict(type='nms', iou_thr=0.0), 
-                             max_per_img=64))
-        proposal_bboxes, proposal_labels = self.bbox_head.get_det_bboxes(
-            rois,
-            cls_score,
-            bbox_pred,
-            img_shape,
-            scale_factor,
-            rescale=rescale,
-            cfg=rcnn_cfg)
-        return proposal_bboxes, proposal_labels
 
 
     def simple_test(self, img, img_meta, proposals=None, rescale=False):

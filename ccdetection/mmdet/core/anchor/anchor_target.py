@@ -128,7 +128,6 @@ def anchor_target_single(flat_anchors,
     bbox_weights = torch.zeros_like(anchors)
     labels_org = anchors.new_zeros(num_valid_anchors, dtype=torch.long)
     labels = anchors.new_zeros(num_valid_anchors, dtype=torch.long)
-
     label_weights = anchors.new_zeros(num_valid_anchors, dtype=torch.float)
 
     pos_inds = sampling_result.pos_inds

@@ -38,7 +38,6 @@ class RPNHead(AnchorHead):
              cls_scores,
              bbox_preds,
              gt_bboxes,
-             gt_labels,
              img_metas,
              cfg,
              gt_bboxes_ignore=None):
@@ -46,17 +45,12 @@ class RPNHead(AnchorHead):
             cls_scores,
             bbox_preds,
             gt_bboxes,
-            # None,
-            gt_labels,
+            None,
             img_metas,
             cfg,
             gt_bboxes_ignore=gt_bboxes_ignore)
         return dict(loss_rpn_cls=losses['loss_cls'], 
-                    loss_rpn_bbox=losses['loss_bbox'], 
-                    labels_list=losses['labels_list'],
-                    bboxes_list=losses['bboxes_list'],
-                    bboxes_weight=losses['bboxes_weight'],
-                    )
+                    loss_rpn_bbox=losses['loss_bbox'])
 
     def get_bboxes_single(self,
                           cls_scores,
@@ -132,9 +126,6 @@ class RPNHead(AnchorHead):
             label = label_list[idx]
             box = box_list[idx]
             box_w = box_weight[idx]
-
-            # if len(label[label>0]) > 0:
-            #     print("RPN label 1 ",label[label>0], label.shape)    
 
             rpn_cls_score = rpn_cls_score.permute(1, 2, 0)
             if self.use_sigmoid_cls:

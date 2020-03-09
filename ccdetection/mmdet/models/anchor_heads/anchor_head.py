@@ -161,12 +161,11 @@ class AnchorHead(nn.Module):
         cls_reg_targets = anchor_target(
             anchor_list, valid_flag_list, gt_bboxes, img_metas, self.target_means, self.target_stds, cfg,
             gt_bboxes_ignore_list=gt_bboxes_ignore, gt_labels_list=gt_labels,
-            label_channels=label_channels, sampling= False, #self.sampling,
+            label_channels=label_channels, sampling= self.sampling,
         )
-
         if cls_reg_targets is None:
             return None
-        (labels_list_org, labels_list, label_weights_list, bbox_targets_list, bbox_weights_list, num_total_pos, num_total_neg) = cls_reg_targets
+        (_, labels_list, label_weights_list, bbox_targets_list, bbox_weights_list, num_total_pos, num_total_neg) = cls_reg_targets
         num_total_samples = num_total_pos + num_total_neg if self.sampling else num_total_pos
         losses_cls, losses_bbox = multi_apply(
             self.loss_single, cls_scores, bbox_preds,
@@ -174,10 +173,7 @@ class AnchorHead(nn.Module):
             num_total_samples=num_total_samples, cfg=cfg,
         )
         return dict(loss_cls=losses_cls, 
-                    loss_bbox=losses_bbox, 
-                    labels_list=labels_list_org, 
-                    bboxes_list=bbox_targets_list,
-                    bboxes_weight=bbox_weights_list)
+                    loss_bbox=losses_bbox)
 
     @force_fp32(apply_to=('cls_scores', 'bbox_preds'))
     def get_bboxes(self, cls_scores, bbox_preds, img_metas, cfg,rescale=False):
@@ -295,9 +291,23 @@ class AnchorHead(nn.Module):
 
 
     @force_fp32(apply_to=('cls_scores', 'bbox_preds'))
-    def get_proposals_w_label(self, cls_scores, bbox_preds, img_metas, cfg, 
-                                labels_list, bbox_targets_list, bbox_targets_weight, gt_bboxes, gt_labels, rescale=False):
+    def get_proposals_w_label(self, cls_scores, bbox_preds, img_metas, cfg, gt_bboxes, gt_labels, rescale=False):
         assert len(cls_scores) == len(bbox_preds)
+        featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
+        assert len(featmap_sizes) == len(self.anchor_generators)
+        device = cls_scores[0].device
+
+        anchor_list, valid_flag_list = self.get_anchors(featmap_sizes, img_metas, device=device)
+        label_channels = self.cls_out_channels if self.use_sigmoid_cls else 1
+        cls_reg_targets = anchor_target(
+            anchor_list, valid_flag_list, gt_bboxes, img_metas, self.target_means, self.target_stds, cfg.rpn,
+            gt_bboxes_ignore_list=None, gt_labels_list=gt_labels,
+            label_channels=label_channels, sampling= False)
+
+        if cls_reg_targets is None:
+            return None
+        (labels_list, _, label_weights_list, bbox_targets_list, bbox_targets_weight, num_total_pos, num_total_neg) = cls_reg_targets
+        import ipdb; ipdb.set_trace()
         num_levels = len(cls_scores)
         device = cls_scores[0].device
         mlvl_anchors = [
@@ -310,6 +320,7 @@ class AnchorHead(nn.Module):
         result_proposal_label = []
         result_proposal_bbox = []
         result_proposal_bbox_weight = []
+
         ################
         ## Test code in single threads
         # img_id = 0
@@ -343,7 +354,7 @@ class AnchorHead(nn.Module):
             img_shape = img_metas[img_id]['img_shape']
             scale_factor = img_metas[img_id]['scale_factor']
             proposals = self.get_proposal_single(cls_score_list, bbox_pred_list, mlvl_anchors, 
-                                            img_shape, scale_factor, cfg, label_list, box_list, box_weight, rescale)
+                                            img_shape, scale_factor, cfg.get('rpn_proposal',cfg.rpn), label_list, box_list, box_weight, rescale)
             result_proposal_list.append(proposals[0])
             result_proposal_label.append(proposals[1])
             result_proposal_bbox.append(proposals[2])

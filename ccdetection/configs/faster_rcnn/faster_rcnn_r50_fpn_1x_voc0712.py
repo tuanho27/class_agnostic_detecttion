@@ -1,5 +1,5 @@
 # model settings
-imgs_per_gpu=3
+imgs_per_gpu=8
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
@@ -69,15 +69,15 @@ train_cfg = dict(
             num=256,
             pos_fraction=0.5,
             neg_pos_ub=-1,
-            add_gt_as_proposals=True),
+            add_gt_as_proposals=False),
         allowed_border=0,
         pos_weight=-1,
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=64,
-        nms_post=64,
-        max_num=64,
+        nms_pre=128,
+        nms_post=128,
+        max_num=128,
         nms_thr=0.5, #0.7 -> 0.5
         min_bbox_size=0),
     rcnn=dict(
@@ -141,7 +141,7 @@ test_pipeline = [
 ]
 data = dict(
     imgs_per_gpu=imgs_per_gpu,
-    workers_per_gpu=4,
+    workers_per_gpu=8,
     train=dict(
         # type='RepeatDataset',
         # times=3,
@@ -174,7 +174,7 @@ lr_config = dict(policy='step', step=[3])  # actual epoch = 3 * 3 = 9
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=10,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
