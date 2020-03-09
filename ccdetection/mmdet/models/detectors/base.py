@@ -126,9 +126,6 @@ class BaseDetector(nn.Module):
         the outer list indicating test time augmentations.
         """
         if return_loss:
-            # if len(img) == 2:
-            #     return self.forward_pair_train(img, img_meta, **kwargs)
-            # else:
             return self.forward_train(img, img_meta, **kwargs)
         else:
             return self.forward_test(img, img_meta, **kwargs)
