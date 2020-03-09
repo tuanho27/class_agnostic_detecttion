@@ -188,7 +188,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
             if len(foreground_index_0) == 0 or len(foreground_index_1)==0:
                 pass 
-                print("Length Pairs: ", 0)
+                # print("Length Pairs: ", 0)
 
             else:
                 for idx0 in foreground_index_0:
@@ -220,7 +220,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                             pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
                                                                 rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
 
-                print("Length Pairs: ", len(pairs))
+                # print("Length Pairs: ", len(pairs))
                 if len(pairs) > 0:
                     pairs = torch.stack(pairs) 
                     pairs_feats = torch.stack(pairs_feats)  

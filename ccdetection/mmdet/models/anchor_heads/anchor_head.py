@@ -297,6 +297,7 @@ class AnchorHead(nn.Module):
         assert len(featmap_sizes) == len(self.anchor_generators)
         device = cls_scores[0].device
 
+        ## add the same anchor_target function as in loss, but instead take exact the label output (not binary)  
         anchor_list, valid_flag_list = self.get_anchors(featmap_sizes, img_metas, device=device)
         label_channels = self.cls_out_channels if self.use_sigmoid_cls else 1
         cls_reg_targets = anchor_target(
@@ -304,10 +305,8 @@ class AnchorHead(nn.Module):
             gt_bboxes_ignore_list=None, gt_labels_list=gt_labels,
             label_channels=label_channels, sampling= False)
 
-        if cls_reg_targets is None:
-            return None
         (labels_list, _, label_weights_list, bbox_targets_list, bbox_targets_weight, num_total_pos, num_total_neg) = cls_reg_targets
-        import ipdb; ipdb.set_trace()
+
         num_levels = len(cls_scores)
         device = cls_scores[0].device
         mlvl_anchors = [

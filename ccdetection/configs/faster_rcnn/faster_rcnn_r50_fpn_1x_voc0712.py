@@ -1,5 +1,5 @@
 # model settings
-imgs_per_gpu=8
+imgs_per_gpu=16
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
@@ -75,10 +75,10 @@ train_cfg = dict(
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=128,
+        nms_pre=256,
         nms_post=128,
         max_num=128,
-        nms_thr=0.5, #0.7 -> 0.5
+        nms_thr=0.6, #0.7 -> 0.5
         min_bbox_size=0),
     rcnn=dict(
         assigner=dict(

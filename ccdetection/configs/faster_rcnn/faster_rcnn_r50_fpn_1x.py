@@ -98,8 +98,11 @@ test_cfg = dict(
     # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
 )
 # dataset settings
-dataset_type = 'CocoDataset'
-data_root = '/home/tuanho/Wrokspace/dataset/coco/'
+# dataset_type = 'CocoDataset'
+# data_root = '/home/tuanho/Wrokspace/dataset/coco/'
+dataset_type='VOCDataset'
+data_root = '/home/member/Workspace/dataset/VOC/VOCdevkit/'
+
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -132,18 +135,24 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'train2017/',
+        # ann_file=data_root + 'annotations/instances_train2017.json',
+        # img_prefix=data_root + 'train2017/',
+        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
+        img_prefix=data_root + 'VOC2007/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        # ann_file=data_root + 'annotations/instances_val2017.json',
+        # img_prefix=data_root + 'val2017/',
+        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
+        img_prefix=data_root + 'VOC2007/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        # ann_file=data_root + 'annotations/instances_val2017.json',
+        # img_prefix=data_root + 'val2017/',
+        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
+        img_prefix=data_root + 'VOC2007/',        
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)

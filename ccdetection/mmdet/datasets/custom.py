@@ -202,13 +202,11 @@ class CustomPairDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
-                #  txt_file = './list_pairs_img.txt', counter = 0,
                  txt_file = './list_pairs_img_voc2007.txt', counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
         
-        self.txt_file = open(txt_file,"r")
         # self.txt_file = open(txt_file,"w")
-        self.list_pair_ids = self.txt_file.readlines()
+        self.list_pair_ids = self.load_pair_images(txt_file)
 
         self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
         self.counter = counter
@@ -260,9 +258,12 @@ class CustomPairDataset(Dataset):
         # return len(self.img_infos)
         return len(self.list_pair_ids)
 
-
     def load_annotations(self, ann_file):
         return mmcv.load(ann_file)
+
+    def load_pair_images(self, txt_file):
+        txt_file = open(txt_file,"r")
+        return txt_file.readlines()
 
     def load_proposals(self, proposal_file):
         return mmcv.load(proposal_file)
@@ -330,7 +331,7 @@ class CustomPairDataset(Dataset):
         img0_info = self.img_infos[int(idx0)]
         ann0_info = self.get_ann_info(int(idx0))
 
-        ################# offline pair image choice
+        ################# offline pair images choice
         idx1 = list(self.list_pair_ids[idx].split(","))[1]
         # print("IDX ", idx0, idx1)
         img1_info = self.img_infos[int(idx1)]
