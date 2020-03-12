@@ -1,5 +1,5 @@
 # model settings
-imgs_per_gpu=16
+imgs_per_gpu=4
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
@@ -49,6 +49,8 @@ model = dict(
         type='SiameseMatching',
         in_channels=256,
         feat_channels=128,
+        dist_mode='cosine',
+        loss_siamese=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         ),
     relation_matching_head=dict(
         type='RelationMatching',
@@ -98,10 +100,10 @@ train_cfg = dict(
 test_cfg = dict(
     rpn=dict(
         nms_across_levels=False,
-        nms_pre=1000,
-        nms_post=1000,
-        max_num=1000,
-        nms_thr=0.7,
+        nms_pre=256,
+        nms_post=128,
+        max_num=128,
+        nms_thr=0.3,
         min_bbox_size=0),
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
@@ -131,7 +133,7 @@ test_pipeline = [
         img_scale=(900, 600),
         flip=False,
         transforms=[
-            dict(type='Resize', keep_ratio=True),
+            dict(type='Resize', keep_ratio=False),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
@@ -157,12 +159,12 @@ data = dict(
             pipeline=train_pipeline), #),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
+        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
+        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
         pipeline=test_pipeline))
 evaluation = dict(interval=1, metric='mAP')
@@ -170,7 +172,14 @@ evaluation = dict(interval=1, metric='mAP')
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
-lr_config = dict(policy='step', step=[3])  # actual epoch = 3 * 3 = 9
+# lr_config = dict(policy='step', step=[3])  # actual epoch = 3 * 3 = 9
+lr_config = dict(
+    policy='step',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=1.0 / 3,
+    step=[3, 6])
+    
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -184,7 +193,7 @@ log_config = dict(
 total_epochs = 12  # actual epoch = 4 * 3 = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_voc0712'
+work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_voc0712_test'
 # load_from = None
 load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None

@@ -99,11 +99,22 @@ class SiameseMatching(nn.Module):
         bbox_pred = refine_bbox_pred.reshape(-1, 4)
         loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
 
-        losses = torch.sum(loss_cls+loss_bbox).pow(2) + self.lamb*loss_siamese
+        losses = torch.sum(loss_cls+loss_bbox) + self.lamb*loss_siamese
 
         end = time() - start
         # print("Time for siamese", end)
-        return dict(loss_siamese=loss_siamese)
+        return dict(loss_siamese=losses)
+
+    def forward_test(self, pairs, pairs_feats):
+        dist_pairs = []
+        for i in range(len(pairs)):
+            pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
+            if self.dist_mode == 'cosine':
+                dist_pairs.append(self.dist(pairs_fc[0],pairs_fc[1]))
+            else:
+                dist_pairs.append((pairs_fc[0] - pairs_fc[1]).pow(2).sum(1))
+        dist_pairs = torch.stack(dist_pairs)
+        return dist_pairs
 
 
 @HEADS.register_module
@@ -197,8 +208,22 @@ class RelationMatching(nn.Module):
         bbox_pred = refine_bbox_pred.reshape(-1, 4)
         loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
 
-        losses = torch.sum(loss_cls+loss_bbox).pow(2) + self.lamb*loss_relation
-
+        losses = torch.sum(loss_cls+loss_bbox) + self.lamb*loss_relation
 
         # print("Time for relation", time()-start)
-        return dict(loss_relation=loss_relation)
+        return dict(loss_relation=losses)
+
+
+    def forward_test(self, pairs, pairs_feats):
+        N,_,c,h,w = pairs_feats.size()
+        feats = pairs_feats.view(N,c*2,h,w)
+
+        for conv in self.relation_module:
+            feats =conv(feats)
+            feats = self.relation_module_pool(feats)
+        feats = F.adaptive_avg_pool2d(feats,1) 
+        pairs_fc = []
+        for i in range(len(pairs)):
+            pairs_fc.append(torch.sigmoid(self.relation_module_fc(feats[i].view(-1))))
+
+        return torch.cat(pairs_fc)

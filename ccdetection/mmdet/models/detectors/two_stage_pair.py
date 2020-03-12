@@ -6,7 +6,7 @@ from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
-
+from mmdet.ops import nms
 
 @DETECTORS.register_module
 class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
@@ -239,7 +239,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                         loss_relation = self.relation_matching_head(pairs, pairs_targets, pairs_feats, 
                                                                     pairs_bbox_target, pairs_bbox_target_weight)
                         losses.update(loss_relation)
-
                 else:
                     pass
 
@@ -316,7 +315,32 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                      bbox_feats=bbox_feats)
 
 
-    def simple_test(self, img, img_meta, proposals=None, rescale=False):
+    def aug_test(self, img, img_meta, proposals=None, rescale=False):
+        result_outputs = []
+        pairs = []
+        pairs_feats = []
+        for i, im in enumerate(img):
+            output = self.simple_test_single(im[0], img_meta[i][0])
+            result_outputs.append(output)
+
+        ## pairs number of proposal
+        for i in range(result_outputs[0]['proposal_list'].size()[0]):
+            for j in range(result_outputs[1]['proposal_list'].size()[0]): 
+                pairs.append(torch.stack((result_outputs[0]['proposal_list'][i],
+                                                    result_outputs[1]['proposal_list'][j]), dim=0))
+                pairs_feats.append(torch.stack((result_outputs[0]['proposal_feats'][i],
+                                                    result_outputs[1]['proposal_feats'][j]), dim=0))   
+        pairs = torch.stack(pairs) 
+        pairs_feats = torch.stack(pairs_feats)  
+
+        pair_score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
+        pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
+        # import ipdb; ipdb.set_trace()
+        print("Total pairs: ",pairs_feats.size()[0])
+        return pairs[torch.argsort(pair_score_relation)[-30:]]
+
+
+    def simple_test_single(self, img, img_meta, proposals=None, rescale=False):
         """Test without augmentation."""
         assert self.with_bbox, "Bbox head must be implemented."
 
@@ -324,47 +348,15 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         proposal_list = self.simple_test_rpn(
             x, img_meta, self.test_cfg.rpn) if proposals is None else proposals
+        proposal_list, _ =  nms(proposal_list[0],0.15)
+        rois = bbox2roi([proposal_list])
+        roi_feats = self.bbox_roi_extractor(
+            x[:len(self.bbox_roi_extractor.featmap_strides)], rois)
+        if self.with_shared_head:
+            roi_feats = self.shared_head(roi_feats)
 
-        det_bboxes, det_labels = self.simple_test_bboxes(
-            x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
-        bbox_results = bbox2result(det_bboxes, det_labels,
-                                   self.bbox_head.num_classes)
+        return dict(proposal_list=proposal_list, proposal_feats=roi_feats)
 
-        if not self.with_mask:
-            return bbox_results
-        else:
-            segm_results = self.simple_test_mask(
-                x, img_meta, det_bboxes, det_labels, rescale=rescale)
-            return bbox_results, segm_results
-
-    def aug_test(self, imgs, img_metas, rescale=False):
-        """Test with augmentations.
-
-        If rescale is False, then returned bboxes and masks will fit the scale
-        of imgs[0].
-        """
-        # recompute feats to save memory
-        proposal_list = self.aug_test_rpn(
-            self.extract_feats(imgs), img_metas, self.test_cfg.rpn)
-        det_bboxes, det_labels = self.aug_test_bboxes(
-            self.extract_feats(imgs), img_metas, proposal_list,
-            self.test_cfg.rcnn)
-
-        if rescale:
-            _det_bboxes = det_bboxes
-        else:
-            _det_bboxes = det_bboxes.clone()
-            _det_bboxes[:, :4] *= img_metas[0][0]['scale_factor']
-        bbox_results = bbox2result(_det_bboxes, det_labels,
-                                   self.bbox_head.num_classes)
-
-        # det_bboxes always keep the original scale
-        if self.with_mask:
-            segm_results = self.aug_test_mask(
-                self.extract_feats(imgs), img_metas, det_bboxes, det_labels)
-            return bbox_results, segm_results
-        else:
-            return bbox_results
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""

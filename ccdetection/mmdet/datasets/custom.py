@@ -202,11 +202,14 @@ class CustomPairDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
-                 txt_file = './list_pairs_img_voc2007.txt', counter = 0,
+                 txt_file = './list_pairs_img_voc2007.txt', 
+                 txt_eval_file = './list_pairs_img_test_voc2007.txt',
+                 counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
         
         # self.txt_file = open(txt_file,"w")
         self.list_pair_ids = self.load_pair_images(txt_file)
+        self.list_pair_test_ids = self.load_pair_images(txt_eval_file)
 
         self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
         self.counter = counter
@@ -252,11 +255,14 @@ class CustomPairDataset(Dataset):
             self._set_group_flag()
         # processing pipeline
         self.pipeline = Compose(pipeline)
-        self.prepare_train_img(0)
+        # self.prepare_train_img(0)
         
     def __len__(self):
         # return len(self.img_infos)
-        return len(self.list_pair_ids)
+        if self.test_mode:
+            return len(self.list_pair_test_ids)
+        else:
+            return len(self.list_pair_ids)
 
     def load_annotations(self, ann_file):
         return mmcv.load(ann_file)
@@ -394,9 +400,33 @@ class CustomPairDataset(Dataset):
         return data
 
     def prepare_test_img(self, idx):
-        img_info = self.img_infos[idx]
-        results = dict(img_info=img_info)
+        
+        ################# offline pair images choice
+        idx0 = list(self.list_pair_test_ids[idx].split(","))[0]
+        img0_info = self.img_infos[int(idx0)]
+        ann0_info = self.get_ann_info(int(idx0))
+
+        idx1 = list(self.list_pair_test_ids[idx].split(","))[1]
+        img1_info = self.img_infos[int(idx1)]
+        ann1_info = self.get_ann_info(int(idx1))
+
+        results_0 = dict(img_info=img0_info, ann_info=ann0_info)
+        results_1 = dict(img_info=img1_info, ann_info=ann1_info)
+
         if self.proposals is not None:
-            results['proposals'] = self.proposals[idx]
-        self.pre_pipeline(results)
-        return self.pipeline(results)
+            results_0['proposals'] = self.proposals[idx0]
+            results_1['proposals'] = self.proposals[idx1]
+        self.pre_pipeline(results_0)
+        self.pre_pipeline(results_1)
+
+        data0 = self.pipeline(results_0)
+        data1 = self.pipeline(results_1)    
+        # img_info = self.img_infos[idx]
+        # results = dict(img_info=img_info)
+        # if self.proposals is not None:
+        #     results['proposals'] = self.proposals[idx]
+        # self.pre_pipeline(results)
+
+        data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
+                    img=[data0['img'],data1['img']])
+        return data
