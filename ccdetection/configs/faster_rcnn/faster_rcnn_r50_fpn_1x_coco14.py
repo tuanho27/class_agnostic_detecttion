@@ -98,11 +98,8 @@ test_cfg = dict(
     # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
 )
 # dataset settings
-# dataset_type = 'CocoDataset'
-# data_root = '/home/tuanho/Wrokspace/dataset/coco/'
-dataset_type='VOCDataset'
-data_root = '/home/member/Workspace/dataset/VOC/VOCdevkit/'
-
+dataset_type = 'CocoPairDataset'
+data_root = '/home/tuanho/Workspace/datasets/coco/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -135,25 +132,24 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_train2017.json',
-        # img_prefix=data_root + 'train2017/',
-        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
-        img_prefix=data_root + 'VOC2007/',
-        pipeline=train_pipeline),
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'images/train2017/',
+        pipeline=train_pipeline,
+        txt_file = './list_pairs_img_coco2014.txt', 
+        ),
     val=dict(
         type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_val2017.json',
-        # img_prefix=data_root + 'val2017/',
-        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
-        img_prefix=data_root + 'VOC2007/',
-        pipeline=test_pipeline),
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'images/val2017/',
+        pipeline=test_pipeline,
+        txt_eval_file = './list_pairs_img_test_coco2014.txt',
+        ),
     test=dict(
         type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_val2017.json',
-        # img_prefix=data_root + 'val2017/',
-        ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
-        img_prefix=data_root + 'VOC2007/',        
-        pipeline=test_pipeline))
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'images/val2017/',
+        pipeline=test_pipeline,
+        txt_eval_file = './list_pairs_img_test_coco2014.txt'))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
@@ -177,7 +173,8 @@ log_config = dict(
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_rcnn_r50_fpn_1x'
-load_from = None
+work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14'
+# load_from = None
+load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None
 workflow = [('train', 1)]

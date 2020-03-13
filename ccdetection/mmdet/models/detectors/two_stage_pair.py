@@ -171,7 +171,11 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                        gt_masks=None,
                                                        proposals=None)
             rpn_outputs.append(rpn_output)
-            losses.update(rpn_output['rpn_losses'])
+        losses_rpn = dict(rpn_losses_cls = rpn_outputs[0]['rpn_losses']['rpn_losses_cls'] + 
+                                                        rpn_outputs[1]['rpn_losses']['rpn_losses_cls'],
+                          rpn_losses_box = rpn_outputs[0]['rpn_losses']['rpn_losses_box'] + 
+                                                        rpn_outputs[1]['rpn_losses']['rpn_losses_box'])
+        losses.update(losses_rpn)
 
         if self.with_bbox:
             ## Prepare positive pairs and negative pairs:
@@ -188,15 +192,12 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
             if len(foreground_index_0) == 0 or len(foreground_index_1)==0:
                 pass 
-                # print("Length Pairs: ", 0)
-
             else:
                 for idx0 in foreground_index_0:
                     for idx1 in foreground_index_1:
                         if rpn_outputs[0]['proposal_label'][idx0] == rpn_outputs[1]['proposal_label'][idx1]:
                             pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][idx0],
                                                                 rpn_outputs[1]['proposal_list'][idx1]]),dim=0))
-
                             pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][idx0],
                                                                 rpn_outputs[1]['bbox_feats'][idx1]]),dim=0))
                             pairs_targets.append(idx1>0)
@@ -219,8 +220,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
                             pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
                                                                 rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
-
-                # print("Length Pairs: ", len(pairs))
                 if len(pairs) > 0:
                     pairs = torch.stack(pairs) 
                     pairs_feats = torch.stack(pairs_feats)  
@@ -239,8 +238,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                         loss_relation = self.relation_matching_head(pairs, pairs_targets, pairs_feats, 
                                                                     pairs_bbox_target, pairs_bbox_target_weight)
                         losses.update(loss_relation)
-                else:
-                    pass
 
         return losses
 

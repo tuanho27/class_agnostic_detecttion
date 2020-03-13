@@ -1,7 +1,8 @@
 from .builder import build_dataset
 from .cityscapes import CityscapesDataset
 from .coco import CocoDataset, CocoPolarDataset
-from .custom import CustomDataset, CustomPairDataset
+from .coco_pair import CocoPairDataset
+from .custom import CustomDataset, CustomPairDataset, CustomPairGenerateDataset
 from .dataset_wrappers import ConcatDataset, RepeatDataset
 from .loader import DistributedGroupSampler, GroupSampler, build_dataloader
 from .registry import DATASETS
@@ -17,5 +18,5 @@ __all__ = [
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
     'DATASETS', 'build_dataset',
     # CC Detect
-    'MPIIDataset', 'CocoPolarDataset',
+    'MPIIDataset', 'CocoPolarDataset', 'CocoPairDataset','CustomPairGenerateDataset'
 ]

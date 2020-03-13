@@ -339,7 +339,6 @@ class CustomPairDataset(Dataset):
 
         ################# offline pair images choice
         idx1 = list(self.list_pair_ids[idx].split(","))[1]
-        # print("IDX ", idx0, idx1)
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
 
@@ -351,34 +350,6 @@ class CustomPairDataset(Dataset):
         #         ann1_info = self.get_ann_info(idx1)
         #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
         #             break
-        
-        ################## Gen data list pairs
-        # count = 0
-        # list_pairs = []
-        # self.counter+=1
-        #
-        # for idx1 in range(1,len(self.img_infos)):
-        #     # idx1 = random.randint(1,len(self.img_infos)) 
-        #     if idx1 != idx0:
-        #         img1_info = self.img_infos[idx1]
-        #         ann1_info = self.get_ann_info(idx1)
-        #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
-        #             # print("IDX ", idx0, idx1)
-        #             list_pairs.append(idx1)
-        #             # count += 1
-        #             # if count == 20:
-        #                 # break 
-        # if len(list_pairs) > 0:
-        #     for i in range(0,20):
-        #         idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
-        #         if idx1 != idx0:
-        #             print("IDX ", idx0, idx1)
-        #             line = str(idx0)  + "," + str(idx1) + "\n"
-        #             self.txt_file.write(str(line))
-
-        # if self.counter == len(self.img_infos) - 1:
-        #     self.txt_file.close()
-        ###################
 
         results_0 = dict(img_info=img0_info, ann_info=ann0_info)
         results_1 = dict(img_info=img1_info, ann_info=ann1_info)
@@ -421,11 +392,220 @@ class CustomPairDataset(Dataset):
 
         data0 = self.pipeline(results_0)
         data1 = self.pipeline(results_1)    
-        # img_info = self.img_infos[idx]
-        # results = dict(img_info=img_info)
-        # if self.proposals is not None:
-        #     results['proposals'] = self.proposals[idx]
-        # self.pre_pipeline(results)
+
+        data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
+                    img=[data0['img'],data1['img']])
+        return data
+
+
+#####################################################################
+#######                     Generate Datset                   #######
+#####################################################################
+@DATASETS.register_module
+class CustomPairGenerateDataset(Dataset):
+    CLASSES = None
+    # CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor'] #VOC2007
+    CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
+                        'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
+                        'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
+    def __init__(self,
+                 ann_file,
+                 pipeline,
+                 data_root=None,
+                 img_prefix='',
+                 seg_prefix=None,
+                 proposal_file=None,
+                 txt_file = './list_pairs_img_coco2014.txt', 
+                 txt_eval_file = './list_pairs_img_test_coco2014.txt',
+                 counter = 0,
+                 test_mode=False, num_samples=None, instaboost=False):
+        
+        self.txt_file = open(txt_file,"w")
+        self.txt_eval_file = open(txt_eval_file,"w")
+
+        self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
+        self.counter = counter
+        self.ann_file = ann_file
+        self.data_root = data_root
+        self.img_prefix = img_prefix
+        self.seg_prefix = seg_prefix
+        self.proposal_file = proposal_file
+        self.test_mode = test_mode
+        # join paths if data_root is specified
+        if self.data_root is not None:
+            if not osp.isabs(self.ann_file):
+                self.ann_file = osp.join(self.data_root, self.ann_file)
+            if not (self.img_prefix is None or osp.isabs(self.img_prefix)):
+                self.img_prefix = osp.join(self.data_root, self.img_prefix)
+            if not (self.seg_prefix is None or osp.isabs(self.seg_prefix)):
+                self.seg_prefix = osp.join(self.data_root, self.seg_prefix)
+            if not (self.proposal_file is None
+                    or osp.isabs(self.proposal_file)):
+                self.proposal_file = osp.join(self.data_root,
+                                              self.proposal_file)
+        # load annotations (and proposals)
+        timer = mmcv.Timer()
+        self.img_infos = self.load_annotations(self.ann_file)
+        print("Dataset Length: ",len(self))
+        print("Loaded annotation times:", timer.since_start())
+        if num_samples is not None:
+            self.img_infos = self.img_infos[:num_samples]
+
+        if self.proposal_file is not None:
+            self.proposals = self.load_proposals(self.proposal_file)
+        else:
+            self.proposals = None
+        # filter images with no annotation during training
+        if not test_mode:
+            valid_inds = self._filter_imgs()
+            self.img_infos = [self.img_infos[i] for i in valid_inds]
+            if self.proposals is not None:
+                self.proposals = [self.proposals[i] for i in valid_inds]
+        # set group flag for the sampler
+        if not self.test_mode:
+            self._set_group_flag()
+        # processing pipeline
+        self.pipeline = Compose(pipeline)
+        # self.prepare_train_img(0)
+        
+    def __len__(self):
+        return len(self.img_infos)
+
+    def load_annotations(self, ann_file):
+        return mmcv.load(ann_file)
+
+    def load_proposals(self, proposal_file):
+        return mmcv.load(proposal_file)
+
+    def get_ann_info(self, idx):
+        return self.img_infos[idx]['ann']
+
+    def pre_pipeline(self, results):
+        results['img_prefix'] = self.img_prefix
+        results['seg_prefix'] = self.seg_prefix
+        results['proposal_file'] = self.proposal_file
+        results['bbox_fields'] = []
+        results['mask_fields'] = []
+
+    def common_member(self, a, b): 
+        a_set = set(a) 
+        b_set = set(b) 
+        common_list = (a_set & b_set)
+        if common_list: 
+            # return True
+            if set(self.class_ignore_idx) & a_set or set(self.class_ignore_idx) & b_set:
+                return False
+            else:
+                return True 
+        else: 
+            return False
+
+    def _filter_imgs(self, min_size=32):
+        """Filter images too small."""
+        valid_inds = []
+        for i, img_info in enumerate(self.img_infos):
+            if min(img_info['width'], img_info['height']) >= min_size:
+                valid_inds.append(i)
+        return valid_inds
+
+    def _set_group_flag(self):
+        """Set flag according to image aspect ratio.
+
+        Images with aspect ratio greater than 1 will be set as group 1,
+        otherwise group 0.
+        """
+        self.flag = np.zeros(len(self), dtype=np.uint8)
+        for i in range(len(self.img_infos)):
+            img_info = self.img_infos[i]
+            if img_info['width'] / img_info['height'] > 1:
+                self.flag[i] = 1
+
+    def _rand_another(self, idx):
+        pool = np.where(self.flag == self.flag[idx])[0]
+        return np.random.choice(pool)
+
+    def __getitem__(self, idx):
+        if self.test_mode:
+            return self.prepare_test_img(idx)
+        while True:
+            data = self.prepare_train_img(idx)
+            if data is None:
+                idx = self._rand_another(idx)
+                continue
+            return data
+            
+    def prepare_train_img(self, idx):
+        idx0 = idx
+        img0_info = self.img_infos[int(idx0)]
+        ann0_info = self.get_ann_info(int(idx0))
+
+        ################# Gen data list pairs ################
+        count = 0
+        list_pairs = []
+        self.counter+=1
+        
+        for idx1 in range(1,len(self.img_infos)):
+            # idx1 = random.randint(1,len(self.img_infos)) 
+            if idx1 != idx0:
+                img1_info = self.img_infos[idx1]
+                ann1_info = self.get_ann_info(idx1)
+                if self.common_member(ann0_info['labels'], ann1_info['labels']):
+                    list_pairs.append(idx1)
+
+        if len(list_pairs) > 0:
+            for i in range(0,20):
+                idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
+                if idx1 != idx0:
+                    print("IDX ", idx0, idx1)
+                    line = str(idx0)  + "," + str(idx1) + "\n"
+                    self.txt_file.write(str(line))
+
+        if self.counter == len(self.img_infos) - 1:
+            self.txt_file.close()
+
+        ######################################################
+
+        results_0 = dict(img_info=img0_info, ann_info=ann0_info)
+        results_1 = dict(img_info=img1_info, ann_info=ann1_info)
+
+        if self.proposals is not None:
+            results_0['proposals'] = self.proposals[idx0]
+            results_1['proposals'] = self.proposals[idx1]
+        self.pre_pipeline(results_0)
+        self.pre_pipeline(results_1)
+
+        data0 = self.pipeline(results_0)
+        data1 = self.pipeline(results_1)
+        
+        data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
+                    img=[data0['img'],data1['img']],
+                    gt_bboxes=[data0['gt_bboxes'],data1['gt_bboxes']],
+                    gt_labels=[data0['gt_labels'],data1['gt_labels']],
+                    )
+        return data
+
+    def prepare_test_img(self, idx):
+        
+        ################# offline pair images choice
+        idx0 = list(self.list_pair_test_ids[idx].split(","))[0]
+        img0_info = self.img_infos[int(idx0)]
+        ann0_info = self.get_ann_info(int(idx0))
+
+        idx1 = list(self.list_pair_test_ids[idx].split(","))[1]
+        img1_info = self.img_infos[int(idx1)]
+        ann1_info = self.get_ann_info(int(idx1))
+
+        results_0 = dict(img_info=img0_info, ann_info=ann0_info)
+        results_1 = dict(img_info=img1_info, ann_info=ann1_info)
+
+        if self.proposals is not None:
+            results_0['proposals'] = self.proposals[idx0]
+            results_1['proposals'] = self.proposals[idx1]
+        self.pre_pipeline(results_0)
+        self.pre_pipeline(results_1)
+
+        data0 = self.pipeline(results_0)
+        data1 = self.pipeline(results_1) 
 
         data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
                     img=[data0['img'],data1['img']])

@@ -1,5 +1,5 @@
 # model settings
-imgs_per_gpu=4
+imgs_per_gpu=16
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
