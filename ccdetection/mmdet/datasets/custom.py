@@ -194,7 +194,10 @@ class CustomDataset(Dataset):
 @DATASETS.register_module
 class CustomPairDataset(Dataset):
     CLASSES = None
-    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
+    # CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
+    CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
+                      'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
+                      'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -202,12 +205,11 @@ class CustomPairDataset(Dataset):
                  img_prefix='',
                  seg_prefix=None,
                  proposal_file=None,
-                 txt_file = './list_pairs_img_voc2007.txt', 
-                 txt_eval_file = './list_pairs_img_test_voc2007.txt',
+                 txt_file = None, 
+                 txt_eval_file = None,
                  counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
         
-        # self.txt_file = open(txt_file,"w")
         self.list_pair_ids = self.load_pair_images(txt_file)
         self.list_pair_test_ids = self.load_pair_images(txt_eval_file)
 
@@ -312,7 +314,8 @@ class CustomPairDataset(Dataset):
         otherwise group 0.
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
-        for i in range(len(self.img_infos)):
+        # for i in range(len(self.img_infos)):
+        for i in range(len(self)):
             img_info = self.img_infos[i]
             if img_info['width'] / img_info['height'] > 1:
                 self.flag[i] = 1
@@ -342,6 +345,7 @@ class CustomPairDataset(Dataset):
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
 
+        # import ipdb; ipdb.set_trace()
         ################# Random choice
         # for i in range(1,len(self.img_infos)):
         #     idx1 = int((i + random.randint(1,len(self.img_infos)))/2) 

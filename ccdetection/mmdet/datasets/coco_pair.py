@@ -6,8 +6,8 @@ from .registry import DATASETS
 
 
 @DATASETS.register_module
-# class CocoPairDataset(CustomPairDataset):
-class CocoPairDataset(CustomPairGenerateDataset):  ## for generate pair data COCO
+class CocoPairDataset(CustomPairDataset):
+# class CocoPairDataset(CustomPairGenerateDataset):  ## for generate pair data COCO
     CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                'train', 'truck', 'boat', 'traffic_light', 'fire_hydrant',
                'stop_sign', 'parking_meter', 'bench', 'bird', 'cat', 'dog',

@@ -1,6 +1,7 @@
-# model settings
+# model setting
+imgs_per_gpu=8
 model = dict(
-    type='FasterRCNN',
+    type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',
@@ -43,14 +44,26 @@ model = dict(
         reg_class_agnostic=False,
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)))
+        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+    siamese_matching_head=dict(
+        type='SiameseMatching',
+        in_channels=256,
+        feat_channels=128,
+        dist_mode='cosine',
+        loss_siamese=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+        ),
+    relation_matching_head=dict(
+        type='RelationMatching',
+        in_channels=256,
+        feat_channels=128,
+        ))        
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(
         assigner=dict(
             type='MaxIoUAssigner',
-            pos_iou_thr=0.7,
-            neg_iou_thr=0.3,
+            pos_iou_thr=0.6, #0.7 -> 0.6
+            neg_iou_thr=0.4, # 0.3 -> 0.4
             min_pos_iou=0.3,
             ignore_iof_thr=-1),
         sampler=dict(
@@ -64,10 +77,10 @@ train_cfg = dict(
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=2000,
-        nms_post=2000,
-        max_num=2000,
-        nms_thr=0.7,
+        nms_pre=64,
+        nms_post=32,
+        max_num=32,
+        nms_thr=0.6, #0.7 -> 0.5
         min_bbox_size=0),
     rcnn=dict(
         assigner=dict(
@@ -87,9 +100,9 @@ train_cfg = dict(
 test_cfg = dict(
     rpn=dict(
         nms_across_levels=False,
-        nms_pre=1000,
-        nms_post=1000,
-        max_num=1000,
+        nms_pre=100,
+        nms_post=100,
+        max_num=100,
         nms_thr=0.7,
         min_bbox_size=0),
     rcnn=dict(
@@ -99,13 +112,13 @@ test_cfg = dict(
 )
 # dataset settings
 dataset_type = 'CocoPairDataset'
-data_root = '/home/tuanho/Workspace/datasets/coco/'
+data_root = '/datasets/coco/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
+    dict(type='Resize', img_scale=(1080, 720), keep_ratio=True),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -116,7 +129,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(1333, 800),
+        img_scale=(1080, 720),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -128,20 +141,22 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=2,
-    workers_per_gpu=2,
+    imgs_per_gpu=imgs_per_gpu,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
         pipeline=train_pipeline,
         txt_file = './list_pairs_img_coco2014.txt', 
+        txt_eval_file = './list_pairs_img_test_coco2014.txt',
         ),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
+        txt_file = './list_pairs_img_coco2014.txt', 
         txt_eval_file = './list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
@@ -149,6 +164,7 @@ data = dict(
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
+        txt_file = './list_pairs_img_coco2014.txt', 
         txt_eval_file = './list_pairs_img_test_coco2014.txt'))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
@@ -170,7 +186,7 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 12
+total_epochs = 14
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14'
