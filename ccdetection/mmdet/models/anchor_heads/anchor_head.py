@@ -1,5 +1,5 @@
 from __future__ import division
-
+from time import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -335,8 +335,10 @@ class AnchorHead(nn.Module):
         #                                      img_shape, scale_factor, proposal_cfg, label_list ,rescale)
         #
         ################
+        # start = time()
         
-        def f(img_id):
+        # def f(img_id):
+        for img_id in range(len(img_metas)):
             cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
             bbox_pred_list = [bbox_preds[i][img_id].detach() for i in range(num_levels)]
             if len(labels_list[0]) > 1:
@@ -358,6 +360,6 @@ class AnchorHead(nn.Module):
             result_proposal_label.append(proposals[1])
             result_proposal_bbox.append(proposals[2])
             result_proposal_bbox_weight.append(proposals[3])
-        multi_thread(f, range(len(img_metas)))
-        
+        # multi_thread(f, range(len(img_metas)))
+        # print("Time Handle: ", time()-start) 
         return result_proposal_list, result_proposal_label, result_proposal_bbox,result_proposal_bbox_weight

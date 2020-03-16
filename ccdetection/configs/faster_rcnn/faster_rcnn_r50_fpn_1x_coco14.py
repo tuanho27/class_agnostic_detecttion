@@ -1,5 +1,5 @@
 # model setting
-imgs_per_gpu=8
+imgs_per_gpu=6
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
@@ -77,10 +77,10 @@ train_cfg = dict(
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=64,
-        nms_post=32,
-        max_num=32,
-        nms_thr=0.6, #0.7 -> 0.5
+        nms_pre=1000,
+        nms_post=64,
+        max_num=64,
+        nms_thr=0.7, #0.7 -> 0.5
         min_bbox_size=0),
     rcnn=dict(
         assigner=dict(
@@ -112,7 +112,7 @@ test_cfg = dict(
 )
 # dataset settings
 dataset_type = 'CocoPairDataset'
-data_root = '/datasets/coco/'
+data_root = '../datasets/coco/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -179,14 +179,14 @@ lr_config = dict(
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=20,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 14
+total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14'

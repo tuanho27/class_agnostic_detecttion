@@ -161,9 +161,23 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                         gt_bboxes_ignore=None,
                         gt_masks=None,
                         proposals=None):
+        """
+        Args:
+            Since the dataset pipeline is changed to train pair images, but we don't want to change the 2 stage process in base detector
+            Therefore we keep all the name of variables, but its values have beed changed 
+            img: contain pair of 2 batch images that have at least 1 common class, 
+                 shape [[batch,c,H,W],[batch,c,H,W]]
+            img_meta: same img but content the meta infor. of images, similar for gt_bboxes, gt_labels
+
+        Returns:
+            dict[str, Tensor]: a dictionary of loss components
+        """
         losses = dict()
+        img_pair = img 
+        assert len(img_pair) == 2 ## this variable always have len == 2
+
         rpn_outputs = []
-        for i, im in enumerate(img):
+        for i, im in enumerate(img_pair):
             rpn_output = self.forward_train_single(im, img_meta[i],
                                                        gt_bboxes[i],
                                                        gt_labels[i],
@@ -176,68 +190,73 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                           rpn_losses_box = rpn_outputs[0]['rpn_losses']['rpn_losses_box'] + 
                                                         rpn_outputs[1]['rpn_losses']['rpn_losses_box'])
         losses.update(losses_rpn)
+        num_imgs = img[0].size()[0] ## <=> img[1].size(0)
 
+        ## calculate cost function for each pair in two batch images
         if self.with_bbox:
-            ## Prepare positive pairs and negative pairs:
-            foreground_index_0 = rpn_outputs[0]['proposal_label'].nonzero()
-            foreground_index_1 = rpn_outputs[1]['proposal_label'].nonzero()
+            loss_siameses = []
+            loss_relations = []
+            for i in range(num_imgs):
+                ## Prepare positive pairs and negative pairs:
+                foreground_index_0 = rpn_outputs[0]['proposal_label'][i].nonzero()
+                foreground_index_1 = rpn_outputs[1]['proposal_label'][i].nonzero()
+                ## add targets from anchor head for refine RPN loss
+                pairs = []
+                pairs_feats = []                
+                pairs_targets = []
+                # pairs_bbox_target = []
+                # pairs_bbox_target_weight = []
 
-            pairs = []
-            pairs_feats = []
-            
-            ## add targets from anchor head for refine RPN loss
-            pairs_targets = []
-            pairs_bbox_target = []
-            pairs_bbox_target_weight = []
+                if len(foreground_index_0) != 0 and len(foreground_index_1) != 0:
+                    for idx0 in foreground_index_0:
+                        for idx1 in foreground_index_1:
+                            if rpn_outputs[0]['proposal_label'][i][idx0] == rpn_outputs[1]['proposal_label'][i][idx1]:
+                                pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][i][idx0],
+                                                                    rpn_outputs[1]['proposal_list'][i][idx1]]),dim=0))
+                                pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][i][idx0],
+                                                                    rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
+                                pairs_targets.append(idx1>0)
 
-            if len(foreground_index_0) == 0 or len(foreground_index_1)==0:
-                pass 
-            else:
-                for idx0 in foreground_index_0:
-                    for idx1 in foreground_index_1:
-                        if rpn_outputs[0]['proposal_label'][idx0] == rpn_outputs[1]['proposal_label'][idx1]:
-                            pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][idx0],
-                                                                rpn_outputs[1]['proposal_list'][idx1]]),dim=0))
-                            pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][idx0],
-                                                                rpn_outputs[1]['bbox_feats'][idx1]]),dim=0))
-                            pairs_targets.append(idx1>0)
+                                # pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
+                                                                    # rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
 
-                            pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
-                                                                rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
+                                # pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
+                                                                    # rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
+                            else:
+                                pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][i][idx0],
+                                                                    rpn_outputs[1]['proposal_list'][i][idx1]]),dim=0))
 
-                            pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
-                                                                rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
-                        else:
-                            pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][idx0],
-                                                                rpn_outputs[1]['proposal_list'][idx1]]),dim=0))
+                                pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][i][idx0],
+                                                                    rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
+                                pairs_targets.append(idx1==0)
 
-                            pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][idx0],
-                                                                rpn_outputs[1]['bbox_feats'][idx1]]),dim=0))
-                            pairs_targets.append(idx1==0)
+                                # pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
+                                #                                     rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
 
-                            pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
-                                                                rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
+                                # pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
+                                #                                     rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
+                    if len(pairs) > 0:
+                        pairs = torch.stack(pairs) 
+                        pairs_feats = torch.stack(pairs_feats)  
+                        pairs_targets = torch.cat(pairs_targets)       
+                        # pairs_bbox_target = torch.stack(pairs_bbox_target)        
+                        # pairs_bbox_target_weight = torch.stack(pairs_bbox_target_weight)        
 
-                            pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
-                                                                rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
-                if len(pairs) > 0:
-                    pairs = torch.stack(pairs) 
-                    pairs_feats = torch.stack(pairs_feats)  
-                    pairs_targets = torch.cat(pairs_targets)       
-                    pairs_bbox_target = torch.stack(pairs_bbox_target)        
-                    pairs_bbox_target_weight = torch.stack(pairs_bbox_target_weight)        
+                        ## Siamese matching loss
+                        if self.siamese_matching_head is not None:
+                            loss_siameses.append(self.siamese_matching_head(pairs, pairs_targets, pairs_feats))#, 
+                                                                        # pairs_bbox_target, pairs_bbox_target_weight))
+                            # losses.update(loss_siamese)
 
-                    ## Siamese matching loss
-                    if self.siamese_matching_head is not None:
-                        loss_siamese = self.siamese_matching_head(pairs, pairs_targets, pairs_feats, 
-                                                                    pairs_bbox_target, pairs_bbox_target_weight)
-                        losses.update(loss_siamese)
-
-                    ## relation matching loss
-                    if self.relation_matching_head is not None:
-                        loss_relation = self.relation_matching_head(pairs, pairs_targets, pairs_feats, 
-                                                                    pairs_bbox_target, pairs_bbox_target_weight)
-                        losses.update(loss_relation)
+                        ## relation matching loss
+                        if self.relation_matching_head is not None:
+                            loss_relations.append(self.relation_matching_head(pairs, pairs_targets, pairs_feats)) #, 
+                                                                        # pairs_bbox_target, pairs_bbox_target_weight)
+                            # losses.update(loss_relation)
+            loss_siamese =  dict(loss_siamese=torch.stack(loss_siameses).mean())  
+            loss_relation =  dict(loss_relation=torch.stack(loss_relations).mean())               
+            losses.update(loss_siamese)
+            losses.update(loss_relation)
 
         return losses
 
@@ -271,6 +290,9 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             proposal_inputs = rpn_outs + (img_meta, self.train_cfg,  gt_bboxes, gt_labels)
             proposal_list, proposal_label, proposal_bbox, proposal_bbox_weight  = self.rpn_head.get_proposals_w_label(*proposal_inputs)
 
+            # print("GroundTruth Label: ", gt_labels)
+            # print("Proposal Label: ", proposal_label)
+
         else:
             proposal_list = proposals
     
@@ -282,7 +304,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             num_imgs = img.size(0)
             if gt_bboxes_ignore is None: 
                 gt_bboxes_ignore = [None for _ in range(num_imgs)]
-            sampling_results = []
+            bbox_feats = []
             for i in range(num_imgs):
                 assign_result = bbox_assigner.assign(proposal_list[i],
                                                      gt_bboxes[i],
@@ -294,21 +316,19 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                     gt_bboxes[i],
                     gt_labels[i],
                     feats=[lvl_feat[i][None] for lvl_feat in x])
-                sampling_results.append(sampling_result)
-            
-        rois = bbox2roi([res.bboxes for res in sampling_results])
-        bbox_feats = self.bbox_roi_extractor(
-            x[:self.bbox_roi_extractor.num_inputs], rois)
-        if self.with_shared_head:
-            bbox_feats = self.shared_head(bbox_feats)
-        rpn_losses = dict(rpn_losses_cls=torch.stack(rpn_losses['loss_rpn_cls']).sum(),
-                          rpn_losses_box =torch.stack(rpn_losses['loss_rpn_bbox']).sum())
+                rois = bbox2roi([sampling_result.bboxes])
+                bbox_feats.append(self.bbox_roi_extractor(tuple(j[i:i+1] for j in x), rois))
+                if self.with_shared_head:
+                    bbox_feats.append(self.shared_head(bbox_feats))
+
+            rpn_losses = dict(rpn_losses_cls=torch.stack(rpn_losses['loss_rpn_cls']).sum(),
+                            rpn_losses_box =torch.stack(rpn_losses['loss_rpn_bbox']).sum())
 
         return  dict(rpn_losses=rpn_losses,
-                     proposal_list=torch.cat(proposal_list),
-                     proposal_label = torch.cat(proposal_label), 
-                     proposal_bbox =torch.cat(proposal_bbox),
-                     proposal_bbox_weight = torch.cat(proposal_bbox_weight),
+                     proposal_list=proposal_list,
+                     proposal_label = proposal_label, 
+                     proposal_bbox =proposal_bbox,
+                     proposal_bbox_weight = proposal_bbox_weight,
                      bbox_feats=bbox_feats)
 
 

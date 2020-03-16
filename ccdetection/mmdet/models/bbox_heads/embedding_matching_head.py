@@ -62,7 +62,7 @@ class SiameseMatching(nn.Module):
         normal_init(self.refine_rpn_reg, std=0.01)
 
 
-    def forward(self, pairs, pairs_targets, pairs_feats, pairs_bbox_target, pairs_bbox_target_weight):
+    def forward(self, pairs, pairs_targets, pairs_feats):#, pairs_bbox_target, pairs_bbox_target_weight):
         start = time()
         dist_pairs = []
         ## siamese loss
@@ -81,30 +81,30 @@ class SiameseMatching(nn.Module):
         dist_pairs = torch.stack(dist_pairs)
         loss_siamese = self.loss_siamese(dist_pairs[:,None], pairs_targets.long(),avg_factor=len(pairs))
 
-        #refine loss
-        feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
-        feats = F.relu(feats, inplace=True)
-        feats = F.adaptive_avg_pool2d(feats,1)
+        ## refine loss
+        # feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
+        # feats = F.relu(feats, inplace=True)
+        # feats = F.adaptive_avg_pool2d(feats,1)
 
         # refine_cls_score = self.refine_rpn_cls(feats)
-        refine_bbox_pred = self.refine_rpn_reg(feats)
+        # refine_bbox_pred = self.refine_rpn_reg(feats)
 
-        # classification loss
+        ## classification loss
         # cls_score = refine_cls_score.reshape(-1, self.cls_out_channels)
         # loss_cls = self.loss_cls(cls_score, pairs_targets.repeat_interleave(2).long(), avg_factor=len(pairs))
 
-        # regression loss
-        pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
-        pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4)
-        bbox_pred = refine_bbox_pred.reshape(-1, 4)
-        loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
+        ## regression loss
+        # pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
+        # pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4)
+        # bbox_pred = refine_bbox_pred.reshape(-1, 4)
+        # loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
 
-        # losses = loss_cls + loss_bbox + self.lamb*loss_siamese
-        losses = loss_bbox + self.lamb*loss_siamese
+        ## losses = loss_cls + loss_bbox + self.lamb*loss_siamese
+        # losses = loss_bbox + self.lamb*loss_siamese
 
         end = time() - start
         # print("Time for siamese", end) 
-        return dict(loss_siamese=losses)
+        return loss_siamese #dict(loss_siamese=loss_siamese)
 
     def forward_test(self, pairs, pairs_feats):
         dist_pairs = []
@@ -176,7 +176,7 @@ class RelationMatching(nn.Module):
         normal_init(self.refine_rpn_cls, std=0.01)
         normal_init(self.refine_rpn_reg, std=0.01)
 
-    def forward(self, pairs, pairs_targets, pairs_feats, pairs_bbox_target, pairs_bbox_target_weight):
+    def forward(self, pairs, pairs_targets, pairs_feats): #, pairs_bbox_target, pairs_bbox_target_weight):
         start = time()
         N,_,c,h,w = pairs_feats.size()
         feats = pairs_feats.view(N,c*2,h,w)
@@ -191,29 +191,29 @@ class RelationMatching(nn.Module):
         
         loss_relation = self.loss_relation(torch.sigmoid(torch.cat(pairs_fc)), pairs_targets.float())
 
-        #refine loss
-        feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
-        feats = F.relu(feats, inplace=True)
-        feats = F.adaptive_avg_pool2d(feats,1)
+        ## refine loss
+        # feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
+        # feats = F.relu(feats, inplace=True)
+        # feats = F.adaptive_avg_pool2d(feats,1)
 
         # refine_cls_score = self.refine_rpn_cls(feats)
-        refine_bbox_pred = self.refine_rpn_reg(feats)
+        # refine_bbox_pred = self.refine_rpn_reg(feats)
 
-        # classification loss
+        ## classification loss
         # cls_score = refine_cls_score.reshape(-1, self.cls_out_channels)
         # loss_cls = self.loss_cls(cls_score, pairs_targets.repeat_interleave(2).long(), avg_factor=len(pairs))
 
-        # regression loss
-        pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
-        pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4) 
-        bbox_pred = refine_bbox_pred.reshape(-1, 4)
-        loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
+        ## regression loss
+        # pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
+        # pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4) 
+        # bbox_pred = refine_bbox_pred.reshape(-1, 4)
+        # loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
 
-        # losses = loss_cls + loss_bbox+ self.lamb*loss_relation
-        losses = loss_bbox + self.lamb*loss_relation
+        ## losses = loss_cls + loss_bbox+ self.lamb*loss_relation
+        # losses = loss_bbox + self.lamb*loss_relation
 
         # print("Time for relation", time()-start)
-        return dict(loss_relation=losses)
+        return loss_relation #dict(loss_relation=loss_relation)
 
 
     def forward_test(self, pairs, pairs_feats):

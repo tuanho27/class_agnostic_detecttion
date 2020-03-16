@@ -194,10 +194,10 @@ class CustomDataset(Dataset):
 @DATASETS.register_module
 class CustomPairDataset(Dataset):
     CLASSES = None
-    # CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
-    CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
-                      'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
-                      'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
+    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
+    # CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
+                    #   'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
+                    #   'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -314,8 +314,8 @@ class CustomPairDataset(Dataset):
         otherwise group 0.
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
-        # for i in range(len(self.img_infos)):
-        for i in range(len(self)):
+        for i in range(len(self.img_infos)): ## voc
+        # for i in range(len(self)): ## coco
             img_info = self.img_infos[i]
             if img_info['width'] / img_info['height'] > 1:
                 self.flag[i] = 1
@@ -344,6 +344,8 @@ class CustomPairDataset(Dataset):
         idx1 = list(self.list_pair_ids[idx].split(","))[1]
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
+        # print("IMG0: ",img0_info)
+        # print("IMG1: ",img1_info)
 
         # import ipdb; ipdb.set_trace()
         ################# Random choice

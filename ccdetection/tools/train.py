@@ -114,7 +114,7 @@ def main():
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
 
-    # To Gen Pair dataset
+    # ## To Gen Pair dataset and debug
     # datasets = datasets if isinstance(datasets, (list, tuple)) else [datasets]
     # data_loaders = [ 
     #     build_dataloader(
@@ -122,7 +122,7 @@ def main():
     #         cfg.data.imgs_per_gpu,
     #         cfg.data.workers_per_gpu,
     #         cfg.gpus,
-    #         shuffle=True,
+    #         shuffle=False,
     #         dist=False) for ds in datasets]
     # count = 0
     # print(data_loaders)

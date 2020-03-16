@@ -1,4 +1,4 @@
-## SetUp
+## SetUp Env
 ```bash
 git clone git@gitlab.com:chuong98vt/ccdetpose.git
 cd ccdetpose
@@ -25,3 +25,19 @@ cd ..
 python ccsetup.py
 pip install -e mmdetection/mmdet/models/backbones/pytorch-image-models
 ```
+
+## Train & Test
+0. To generate dataset
+COCO:
+- Uncomment line 10 in file: ccdetection/mmdet/datasets/coco_pair.py, and comment line 11 
+VOC:
+- Uncomment line 92 in file: ccdetection/mmdet/datasets/xml_style.py, and comment line 91
+
+Then change the config file in ./scripts/tuan/generate_pair_dataset.sh and execute this file, wait until enough expected sample
+
+1. To train dataset
+- Change setting in ./scripts/tuan/train_faster_rcnn_agnostic.sh and then execute
+
+2. To test inference pair of images
+- Change setting in ./scripts/tuan/test_faster_rcnn_agnostic.sh and then execute
+ 

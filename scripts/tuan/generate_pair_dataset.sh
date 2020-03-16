@@ -1,4 +1,3 @@
-# CONFIG_FILE='ccdetection/configs/rdsnet/rdsnet_b1_fpn_1x.py'
 SEED=0
 GPUS=1
 export CUDA_VISIBLE_DEVICES=2 #,2,3

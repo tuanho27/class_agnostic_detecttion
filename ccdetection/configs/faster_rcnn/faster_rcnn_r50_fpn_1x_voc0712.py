@@ -156,17 +156,23 @@ data = dict(
             # img_prefix=[data_root + 'VOC2007/', data_root + 'VOC2012/'],
             ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
             img_prefix=data_root + 'VOC2007/',
-            pipeline=train_pipeline), #),
+            pipeline=train_pipeline,
+            txt_file = './list_pairs_img_voc2007.txt', 
+            txt_eval_file = './list_pairs_img_test_voc2007.txt'),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
-        pipeline=test_pipeline),
+        pipeline=test_pipeline,
+        txt_file = './list_pairs_img_voc2007.txt', 
+        txt_eval_file = './list_pairs_img_test_voc2007.txt'),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
-        pipeline=test_pipeline))
+        pipeline=test_pipeline,
+        txt_file = './list_pairs_img_voc2007.txt', 
+        txt_eval_file = './list_pairs_img_test_voc2007.txt'))
 evaluation = dict(interval=1, metric='mAP')
 # optimizer
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
