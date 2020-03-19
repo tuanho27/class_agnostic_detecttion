@@ -194,10 +194,6 @@ class CustomDataset(Dataset):
 @DATASETS.register_module
 class CustomPairDataset(Dataset):
     CLASSES = None
-    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
-    # CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
-                    #   'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
-                    #   'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -216,6 +212,7 @@ class CustomPairDataset(Dataset):
         self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
         self.counter = counter
         self.ann_file = ann_file
+        self.txt_file = txt_file
         self.data_root = data_root
         self.img_prefix = img_prefix
         self.seg_prefix = seg_prefix
@@ -257,7 +254,6 @@ class CustomPairDataset(Dataset):
             self._set_group_flag()
         # processing pipeline
         self.pipeline = Compose(pipeline)
-        # self.prepare_train_img(0)
         
     def __len__(self):
         # return len(self.img_infos)
@@ -314,8 +310,11 @@ class CustomPairDataset(Dataset):
         otherwise group 0.
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
-        for i in range(len(self.img_infos)): ## voc
-        # for i in range(len(self)): ## coco
+        if "coco" in self.txt_file:
+            flag_len = len(self) ## coco
+        else:
+            flag_len = len(self.img_infos) ## voc
+        for i in range(flag_len): 
             img_info = self.img_infos[i]
             if img_info['width'] / img_info['height'] > 1:
                 self.flag[i] = 1
@@ -410,10 +409,6 @@ class CustomPairDataset(Dataset):
 @DATASETS.register_module
 class CustomPairGenerateDataset(Dataset):
     CLASSES = None
-    # CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor'] #VOC2007
-    CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
-                        'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
-                        'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] #COCO2014
     def __init__(self,
                  ann_file,
                  pipeline,

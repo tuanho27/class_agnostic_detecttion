@@ -317,8 +317,8 @@ class AnchorHead(nn.Module):
         ]
         result_proposal_list = []
         result_proposal_label = []
-        result_proposal_bbox = []
-        result_proposal_bbox_weight = []
+        # result_proposal_bbox = []
+        # result_proposal_bbox_weight = []
 
         ################
         ## Test code in single threads
@@ -335,8 +335,6 @@ class AnchorHead(nn.Module):
         #                                      img_shape, scale_factor, proposal_cfg, label_list ,rescale)
         #
         ################
-        # start = time()
-        
         # def f(img_id):
         for img_id in range(len(img_metas)):
             cls_score_list = [cls_scores[i][img_id].detach() for i in range(num_levels)]
@@ -358,8 +356,10 @@ class AnchorHead(nn.Module):
                                             img_shape, scale_factor, cfg.get('rpn_proposal',cfg.rpn), label_list, box_list, box_weight, rescale)
             result_proposal_list.append(proposals[0])
             result_proposal_label.append(proposals[1])
-            result_proposal_bbox.append(proposals[2])
-            result_proposal_bbox_weight.append(proposals[3])
+            # result_proposal_bbox.append(proposals[2])
+            # result_proposal_bbox_weight.append(proposals[3])
+
         # multi_thread(f, range(len(img_metas)))
-        # print("Time Handle: ", time()-start) 
-        return result_proposal_list, result_proposal_label, result_proposal_bbox,result_proposal_bbox_weight
+
+        return result_proposal_list, result_proposal_label
+                # ,result_proposal_bbox,result_proposal_bbox_weight

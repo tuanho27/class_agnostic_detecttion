@@ -140,7 +140,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             outs = outs + (mask_pred, )
         return outs
 
-
     ## add match function
     def common_member(self, a, b): 
         a_set = set(a.detach().cpu().numpy()) 
@@ -150,7 +149,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             return [*common_list,]
         else:
             return None
-
 
     #######################################################
     ## for train pair images
@@ -173,26 +171,26 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             dict[str, Tensor]: a dictionary of loss components
         """
         losses = dict()
-        img_pair = img 
-        assert len(img_pair) == 2 ## this variable always have len == 2
+        assert len(img) == 2 ## this variable always have len == 2
 
+        ## forward each batch images in pair
         rpn_outputs = []
-        for i, im in enumerate(img_pair):
-            rpn_output = self.forward_train_single(im, img_meta[i],
+        for i in range(2):
+            rpn_outputs.append(self.forward_train_single(img[i], img_meta[i],
                                                        gt_bboxes[i],
                                                        gt_labels[i],
                                                        gt_bboxes_ignore=None,
                                                        gt_masks=None,
-                                                       proposals=None)
-            rpn_outputs.append(rpn_output)
+                                                       proposals=None))
+
         losses_rpn = dict(rpn_losses_cls = rpn_outputs[0]['rpn_losses']['rpn_losses_cls'] + 
                                                         rpn_outputs[1]['rpn_losses']['rpn_losses_cls'],
                           rpn_losses_box = rpn_outputs[0]['rpn_losses']['rpn_losses_box'] + 
                                                         rpn_outputs[1]['rpn_losses']['rpn_losses_box'])
         losses.update(losses_rpn)
-        num_imgs = img[0].size()[0] ## <=> img[1].size(0)
 
         ## calculate cost function for each pair in two batch images
+        num_imgs = img[0].size()[0] 
         if self.with_bbox:
             loss_siameses = []
             loss_relations = []
@@ -200,12 +198,9 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                 ## Prepare positive pairs and negative pairs:
                 foreground_index_0 = rpn_outputs[0]['proposal_label'][i].nonzero()
                 foreground_index_1 = rpn_outputs[1]['proposal_label'][i].nonzero()
-                ## add targets from anchor head for refine RPN loss
                 pairs = []
                 pairs_feats = []                
                 pairs_targets = []
-                # pairs_bbox_target = []
-                # pairs_bbox_target_weight = []
 
                 if len(foreground_index_0) != 0 and len(foreground_index_1) != 0:
                     for idx0 in foreground_index_0:
@@ -214,52 +209,37 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                 pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][i][idx0],
                                                                     rpn_outputs[1]['proposal_list'][i][idx1]]),dim=0))
                                 pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][i][idx0],
-                                                                    rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
-                                pairs_targets.append(idx1>0)
+                                                                       rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
+                                pairs_targets.append(idx1>0) ## just keep tensor binary value
 
-                                # pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
-                                                                    # rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
-
-                                # pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
-                                                                    # rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
                             else:
                                 pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][i][idx0],
                                                                     rpn_outputs[1]['proposal_list'][i][idx1]]),dim=0))
 
                                 pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][i][idx0],
-                                                                    rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
-                                pairs_targets.append(idx1==0)
+                                                                       rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
+                                pairs_targets.append(idx1==0) ## just keep tensor binary value
 
-                                # pairs_bbox_target.append(torch.cat(([rpn_outputs[0]['proposal_bbox'][idx0],
-                                #                                     rpn_outputs[1]['proposal_bbox'][idx1]]),dim=0))
-
-                                # pairs_bbox_target_weight.append(torch.cat(([rpn_outputs[0]['proposal_bbox_weight'][idx0],
-                                #                                     rpn_outputs[1]['proposal_bbox_weight'][idx1]]),dim=0))
                     if len(pairs) > 0:
                         pairs = torch.stack(pairs) 
                         pairs_feats = torch.stack(pairs_feats)  
                         pairs_targets = torch.cat(pairs_targets)       
-                        # pairs_bbox_target = torch.stack(pairs_bbox_target)        
-                        # pairs_bbox_target_weight = torch.stack(pairs_bbox_target_weight)        
 
                         ## Siamese matching loss
                         if self.siamese_matching_head is not None:
-                            loss_siameses.append(self.siamese_matching_head(pairs, pairs_targets, pairs_feats))#, 
-                                                                        # pairs_bbox_target, pairs_bbox_target_weight))
-                            # losses.update(loss_siamese)
+                            loss_siameses.append(self.siamese_matching_head(pairs, pairs_targets, pairs_feats)) 
 
                         ## relation matching loss
                         if self.relation_matching_head is not None:
-                            loss_relations.append(self.relation_matching_head(pairs, pairs_targets, pairs_feats)) #, 
-                                                                        # pairs_bbox_target, pairs_bbox_target_weight)
-                            # losses.update(loss_relation)
+                            loss_relations.append(self.relation_matching_head(pairs, pairs_targets, pairs_feats)) 
+
             loss_siamese =  dict(loss_siamese=torch.stack(loss_siameses).mean())  
-            loss_relation =  dict(loss_relation=torch.stack(loss_relations).mean())               
+            loss_relation =  dict(loss_relation=torch.stack(loss_relations).mean())
+
             losses.update(loss_siamese)
             losses.update(loss_relation)
 
         return losses
-
 
     def forward_train_single(self,img,
                             img_meta,
@@ -270,7 +250,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                             proposals=None):
         """
         Args:
-
+            Same above but for single batch 
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
@@ -288,10 +268,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
             proposal_cfg = self.train_cfg.get('rpn_proposal',self.train_cfg.rpn)
             proposal_inputs = rpn_outs + (img_meta, self.train_cfg,  gt_bboxes, gt_labels)
-            proposal_list, proposal_label, proposal_bbox, proposal_bbox_weight  = self.rpn_head.get_proposals_w_label(*proposal_inputs)
-
-            # print("GroundTruth Label: ", gt_labels)
-            # print("Proposal Label: ", proposal_label)
+            proposal_list, proposal_label  = self.rpn_head.get_proposals_w_label(*proposal_inputs)
 
         else:
             proposal_list = proposals
@@ -327,11 +304,9 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
         return  dict(rpn_losses=rpn_losses,
                      proposal_list=proposal_list,
                      proposal_label = proposal_label, 
-                     proposal_bbox =proposal_bbox,
-                     proposal_bbox_weight = proposal_bbox_weight,
                      bbox_feats=bbox_feats)
 
-
+    ### For inference pair images (this function re-used as augmementation test)
     def aug_test(self, img, img_meta, proposals=None, rescale=False):
         result_outputs = []
         pairs = []
@@ -352,7 +327,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         pair_score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
         pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
-        # import ipdb; ipdb.set_trace()
         print("Total pairs: ",pairs_feats.size()[0])
         return pairs[torch.argsort(pair_score_relation)[-30:]]
 
@@ -374,7 +348,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         return dict(proposal_list=proposal_list, proposal_feats=roi_feats)
 
-
+### additional cls ###
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
     __getattr__ = dict.get

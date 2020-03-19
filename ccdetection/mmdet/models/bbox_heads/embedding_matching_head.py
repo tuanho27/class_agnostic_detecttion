@@ -18,11 +18,12 @@ class SiameseMatching(nn.Module):
     Takes a batch of embeddings and corresponding labels.
     Positive and negative pairs
     """
-    def __init__(self, margin=1e-1, 
+    def __init__(self, margin=1e-3, 
                        lamb = 2,
                        in_channels=256,
                        feat_channels=128,
                        cls_out_channels = 1, # background and foreground classes
+                       num_conv = 3,
                        dist_mode='cosine',
                        loss_siamese=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
                        loss_cls=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
@@ -35,14 +36,29 @@ class SiameseMatching(nn.Module):
         self.in_channels = in_channels
         self.feat_channels = feat_channels
         self.cls_out_channels = cls_out_channels
+        self.num_conv = num_conv
         self.loss_siamese = build_loss(loss_siamese)
         self.loss_cls = build_loss(loss_cls)
         self.loss_bbox = build_loss(loss_bbox)
-
+        self.siamese_conv = nn.ModuleList()
+        for i in range(self.num_conv):
+            channel = self.in_channels if i == 0 else self.in_channels*2
+            self.siamese_conv.append(
+                ConvModule(
+                    channel,
+                    512,
+                    kernel_size=(3,3),
+                    padding=0,
+                    conv_cfg=None,
+                    norm_cfg=None))
+        # self.siamese_embedding = nn.Sequential(
+        #                          nn.Linear(7*7*in_channels,512),
+        #                          nn.ReLU(inplace=True),
+        #                          nn.Linear(512,self.feat_channels))
         self.siamese_embedding = nn.Sequential(
-                                 nn.Linear(7*7*in_channels,512),
+                                 nn.Linear(512,256),
                                  nn.ReLU(inplace=True),
-                                 nn.Linear(512,self.feat_channels))
+                                 nn.Linear(256,self.feat_channels))
         self.dist = nn.CosineSimilarity(dim=0, eps=1e-7) 
 
         self.refine_rpn_conv = nn.Conv2d(self.in_channels, self.feat_channels, 3, padding=1)
@@ -61,50 +77,25 @@ class SiameseMatching(nn.Module):
         normal_init(self.refine_rpn_cls, std=0.01)
         normal_init(self.refine_rpn_reg, std=0.01)
 
-
-    def forward(self, pairs, pairs_targets, pairs_feats):#, pairs_bbox_target, pairs_bbox_target_weight):
-        start = time()
+    def forward(self, pairs, pairs_targets, pairs_feats):
         dist_pairs = []
-        ## siamese loss
         for i in range(len(pairs)):
-            pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
+            feat = pairs_feats[i]
+            for conv in self.siamese_conv:
+                feat =conv(feat)
+                
+            # pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
+            pairs_fc = [self.siamese_embedding(feat[j].view(-1)) for j in range(2)]
             if self.dist_mode == 'cosine':
-                if pairs_targets[i] == True:
-                    dist_pairs.append(torch.log(self.dist(pairs_fc[0],pairs_fc[1])))
-                else:
-                    dist_pairs.append(torch.log(1 - self.dist(pairs_fc[0],pairs_fc[1]) + self.margin))
+                dist_pairs.append(self.dist(pairs_fc[0],pairs_fc[1]))
             else:
-                if pairs_targets[i] == True:
-                    dist_pairs.append(torch.log((pairs_fc[0] - pairs_fc[1]).pow(2).sum(1)))
-                else:
-                    dist_pairs.append(torch.log(1- (pairs_fc[0] - pairs_fc[1] + self.margin).pow(2).sum(1)))
+                dist_pairs.append((pairs_fc[0] - pairs_fc[1]).pow(2).sum(1))
+                # dist_pairs.append(nn.PairwiseDistance(pairs_fc[0],pairs_fc[1]))
+
         dist_pairs = torch.stack(dist_pairs)
         loss_siamese = self.loss_siamese(dist_pairs[:,None], pairs_targets.long(),avg_factor=len(pairs))
-
-        ## refine loss
-        # feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
-        # feats = F.relu(feats, inplace=True)
-        # feats = F.adaptive_avg_pool2d(feats,1)
-
-        # refine_cls_score = self.refine_rpn_cls(feats)
-        # refine_bbox_pred = self.refine_rpn_reg(feats)
-
-        ## classification loss
-        # cls_score = refine_cls_score.reshape(-1, self.cls_out_channels)
-        # loss_cls = self.loss_cls(cls_score, pairs_targets.repeat_interleave(2).long(), avg_factor=len(pairs))
-
-        ## regression loss
-        # pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
-        # pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4)
-        # bbox_pred = refine_bbox_pred.reshape(-1, 4)
-        # loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
-
-        ## losses = loss_cls + loss_bbox + self.lamb*loss_siamese
-        # losses = loss_bbox + self.lamb*loss_siamese
-
-        end = time() - start
-        # print("Time for siamese", end) 
-        return loss_siamese #dict(loss_siamese=loss_siamese)
+       
+        return loss_siamese 
 
     def forward_test(self, pairs, pairs_feats):
         dist_pairs = []
@@ -124,12 +115,11 @@ class RelationMatching(nn.Module):
     Relation Matching loss
     Positive and negative pairs
     """
-
     def __init__(self, in_channels=256,
                        lamb = 2,
                        feat_channels=128,
                        cls_out_channels = 1,
-                       num_conv = 3,
+                       num_conv = 4,
                        loss_relation = nn.MSELoss(),
                        loss_cls=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
                        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)):
@@ -176,8 +166,7 @@ class RelationMatching(nn.Module):
         normal_init(self.refine_rpn_cls, std=0.01)
         normal_init(self.refine_rpn_reg, std=0.01)
 
-    def forward(self, pairs, pairs_targets, pairs_feats): #, pairs_bbox_target, pairs_bbox_target_weight):
-        start = time()
+    def forward(self, pairs, pairs_targets, pairs_feats):
         N,_,c,h,w = pairs_feats.size()
         feats = pairs_feats.view(N,c*2,h,w)
 
@@ -190,31 +179,8 @@ class RelationMatching(nn.Module):
             pairs_fc.append(self.relation_module_fc(feats[i].view(-1)))
         
         loss_relation = self.loss_relation(torch.sigmoid(torch.cat(pairs_fc)), pairs_targets.float())
-
-        ## refine loss
-        # feats = self.refine_rpn_conv(torch.cat([feat for feat in pairs_feats]))
-        # feats = F.relu(feats, inplace=True)
-        # feats = F.adaptive_avg_pool2d(feats,1)
-
-        # refine_cls_score = self.refine_rpn_cls(feats)
-        # refine_bbox_pred = self.refine_rpn_reg(feats)
-
-        ## classification loss
-        # cls_score = refine_cls_score.reshape(-1, self.cls_out_channels)
-        # loss_cls = self.loss_cls(cls_score, pairs_targets.repeat_interleave(2).long(), avg_factor=len(pairs))
-
-        ## regression loss
-        # pairs_bbox_target = torch.cat([_ for _ in pairs_bbox_target]) #pairs_bbox_target.reshape(-1, 4)
-        # pairs_bbox_target_weight = pairs_bbox_target_weight.reshape(-1, 4) 
-        # bbox_pred = refine_bbox_pred.reshape(-1, 4)
-        # loss_bbox = self.loss_bbox(bbox_pred, pairs_bbox_target, pairs_bbox_target_weight, avg_factor=len(pairs))
-
-        ## losses = loss_cls + loss_bbox+ self.lamb*loss_relation
-        # losses = loss_bbox + self.lamb*loss_relation
-
-        # print("Time for relation", time()-start)
-        return loss_relation #dict(loss_relation=loss_relation)
-
+       
+        return loss_relation
 
     def forward_test(self, pairs, pairs_feats):
         N,_,c,h,w = pairs_feats.size()

@@ -23,6 +23,10 @@ class CocoPairDataset(CustomPairDataset):
                'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock',
                'vase', 'scissors', 'teddy_bear', 'hair_drier', 'toothbrush')
 
+    CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
+                      'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
+                      'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] 
+                      
     def load_annotations(self, ann_file):
         self.coco = COCO(ann_file)
         self.cat_ids = self.coco.getCatIds()

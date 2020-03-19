@@ -90,6 +90,8 @@ class XMLDataset(CustomDataset):
 @DATASETS.register_module
 class XMLPairDataset(CustomPairDataset):
 # class XMLPairDataset(CustomPairGenerateDataset): ## for generate pair data VOC
+    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
+    
     def __init__(self, min_size=None, **kwargs):
         self.cat2label = {cat: i + 1 for i, cat in enumerate(self.CLASSES)}
         self.min_size = min_size

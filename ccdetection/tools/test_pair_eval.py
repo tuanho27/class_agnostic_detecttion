@@ -29,7 +29,6 @@ def single_gpu_test(model, data_loader, show=False):
         if show:
             model.module.show_result(data, result, show=False, out_file=f'cache/{i}.png')
 
-        import ipdb; ipdb
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
             prog_bar.update()
@@ -200,7 +199,7 @@ def main():
     else:
         model = MMDistributedDataParallel(model.cuda())
         outputs = multi_gpu_test(model, data_loader, args.tmpdir)
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     rank, _ = get_dist_info()
     if args.out and rank == 0:

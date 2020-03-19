@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-#mmdetection/
-=======
 ccdetection/mmdet/models/backbones/pytorch-image-models/output/
 ccdetection/mmdet/models/backbones/pytorch-image-models/summary.csv
 mmdetection/
->>>>>>> 3054a691d4155ea260d7b0b42dcbce0eba261a62
 workdir/
 work_dirs/
 __pycache__/
@@ -143,3 +139,5 @@ work_dirs/
 **/*.swo
 _mm_status.txt
 mmdetection
+
+testing

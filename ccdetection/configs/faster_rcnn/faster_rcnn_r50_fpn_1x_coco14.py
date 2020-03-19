@@ -100,10 +100,10 @@ train_cfg = dict(
 test_cfg = dict(
     rpn=dict(
         nms_across_levels=False,
-        nms_pre=100,
-        nms_post=100,
-        max_num=100,
-        nms_thr=0.7,
+        nms_pre=64,
+        nms_post=32,
+        max_num=32,
+        nms_thr=0.4,
         min_bbox_size=0),
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
@@ -148,24 +148,24 @@ data = dict(
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
         pipeline=train_pipeline,
-        txt_file = './list_pairs_img_coco2014.txt', 
-        txt_eval_file = './list_pairs_img_test_coco2014.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
-        txt_file = './list_pairs_img_coco2014.txt', 
-        txt_eval_file = './list_pairs_img_test_coco2014.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
-        txt_file = './list_pairs_img_coco2014.txt', 
-        txt_eval_file = './list_pairs_img_test_coco2014.txt'))
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
