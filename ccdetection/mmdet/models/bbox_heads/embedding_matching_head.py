@@ -82,7 +82,7 @@ class SiameseMatching(nn.Module):
         for i in range(len(pairs)):
             feat = pairs_feats[i]
             for conv in self.siamese_conv:
-                feat =conv(feat)
+                feat = conv(feat)
                 
             # pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
             pairs_fc = [self.siamese_embedding(feat[j].view(-1)) for j in range(2)]
@@ -119,7 +119,7 @@ class RelationMatching(nn.Module):
                        lamb = 2,
                        feat_channels=128,
                        cls_out_channels = 1,
-                       num_conv = 4,
+                       num_conv = 4, #4
                        loss_relation = nn.MSELoss(),
                        loss_cls=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
                        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)):

@@ -343,11 +343,8 @@ class CustomPairDataset(Dataset):
         idx1 = list(self.list_pair_ids[idx].split(","))[1]
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
-        # print("IMG0: ",img0_info)
-        # print("IMG1: ",img1_info)
 
-        # import ipdb; ipdb.set_trace()
-        ################# Random choice
+        ################# online random choice
         # for i in range(1,len(self.img_infos)):
         #     idx1 = int((i + random.randint(1,len(self.img_infos)))/2) 
         #     if idx1 != idx:
@@ -376,7 +373,6 @@ class CustomPairDataset(Dataset):
         return data
 
     def prepare_test_img(self, idx):
-        
         ################# offline pair images choice
         idx0 = list(self.list_pair_test_ids[idx].split(","))[0]
         img0_info = self.img_infos[int(idx0)]
@@ -399,7 +395,9 @@ class CustomPairDataset(Dataset):
         data1 = self.pipeline(results_1)    
 
         data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
-                    img=[data0['img'],data1['img']])
+                    img=[data0['img'],data1['img']],
+                    gt_bboxes=[data0['gt_bboxes'],data1['gt_bboxes']],
+                    gt_labels=[data0['gt_labels'],data1['gt_labels']],)
         return data
 
 

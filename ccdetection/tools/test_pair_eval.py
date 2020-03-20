@@ -3,17 +3,50 @@ import os
 import os.path as osp
 import shutil
 import tempfile
-
 import mmcv
+import cv2
+import numpy as np
 import torch
 import torch.distributed as dist
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import get_dist_info, load_checkpoint
-
+from tqdm import tqdm
+from terminaltables import AsciiTable
 from mmdet.apis import init_dist
 from mmdet.core import coco_eval, results2json, wrap_fp16_model
 from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.models import build_detector
+from mmdet.core.evaluation.bbox_overlaps import bbox_overlaps
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='MMDet test detector')
+    parser.add_argument('config', help='test config file path')
+    parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument('--out', help='output result file')
+    parser.add_argument(
+        '--json_out',
+        help='output result file name without extension',
+        type=str)
+    parser.add_argument(
+        '--eval',
+        type=str,
+        nargs='+',
+        choices=['proposal', 'proposal_fast', 'bbox', 'segm', 'keypoints'],
+        help='eval types')
+    parser.add_argument('--show', action='store_true', help='show results')
+    parser.add_argument('--tmpdir', help='tmp dir for writing some results')
+    parser.add_argument(
+        '--launcher',
+        choices=['none', 'pytorch', 'slurm', 'mpi'],
+        default='none',
+        help='job launcher')
+    parser.add_argument('--local_rank', type=int, default=0)
+    parser.add_argument('--data_root', help='data root')
+    parser.add_argument('--work_dir', help='work dir')
+    args = parser.parse_args()
+    if 'LOCAL_RANK' not in os.environ:
+        os.environ['LOCAL_RANK'] = str(args.local_rank)
+    return args
 
 
 def single_gpu_test(model, data_loader, show=False):
@@ -21,7 +54,32 @@ def single_gpu_test(model, data_loader, show=False):
     results = []
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
+    gt_pairs = []
     for i, data in enumerate(data_loader):
+
+        ## img
+        # size = (900, 600)
+        # img0_0 = mmcv.imread(data['img_meta'][0][0].data[0][0]['filename'])
+        # img1_0 = mmcv.imread(data['img_meta'][1][0].data[0][0]['filename'])
+        # img = np.concatenate((mmcv.imresize(img0_0, size), mmcv.imresize(img1_0, size)), axis=1) 
+        # cv2.imwrite("./pair_test.jpg", img)
+
+        gt_positive_pairs = []
+        gt_negative_pairs = []
+        gt_bbox_0 = data['gt_bboxes'][0][0].squeeze(0)
+        gt_bbox_1 = data['gt_bboxes'][1][0].squeeze(0)
+
+        for i in range(data['gt_labels'][0][0].size(1)):
+            for j in range(data['gt_labels'][1][0].size(1)):
+                if data['gt_labels'][0][0].view(-1)[i] == data['gt_labels'][1][0].view(-1)[j]:
+                    gt_positive_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
+                else:
+                    gt_negative_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
+        try:
+            gt_pairs.append(torch.stack(gt_positive_pairs))
+        except:
+            import ipdb; ipdb.set_trace()
+
         with torch.no_grad():
             result = model(return_loss=False, rescale=not show, **data)
         results.append(result)
@@ -29,10 +87,10 @@ def single_gpu_test(model, data_loader, show=False):
         if show:
             model.module.show_result(data, result, show=False, out_file=f'cache/{i}.png')
 
-        batch_size = data['img'][0].size(0)
+        batch_size = data['img'][0][0].size(0)
         for _ in range(batch_size):
             prog_bar.update()
-    return results
+    return results, gt_pairs
 
 
 def multi_gpu_test(model, data_loader, tmpdir=None):
@@ -48,7 +106,7 @@ def multi_gpu_test(model, data_loader, tmpdir=None):
         results.append(result)
 
         if rank == 0:
-            batch_size = data['img'][0].size(0)
+            batch_size = data['img'][0][0].size(0)
             for _ in range(batch_size * world_size):
                 prog_bar.update()
 
@@ -98,38 +156,6 @@ def collect_results(result_part, size, tmpdir=None):
         # remove tmp dir
         shutil.rmtree(tmpdir)
         return ordered_results
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='MMDet test detector')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--out', help='output result file')
-    parser.add_argument(
-        '--json_out',
-        help='output result file name without extension',
-        type=str)
-    parser.add_argument(
-        '--eval',
-        type=str,
-        nargs='+',
-        choices=['proposal', 'proposal_fast', 'bbox', 'segm', 'keypoints'],
-        help='eval types')
-    parser.add_argument('--show', action='store_true', help='show results')
-    parser.add_argument('--tmpdir', help='tmp dir for writing some results')
-    parser.add_argument(
-        '--launcher',
-        choices=['none', 'pytorch', 'slurm', 'mpi'],
-        default='none',
-        help='job launcher')
-    parser.add_argument('--local_rank', type=int, default=0)
-    parser.add_argument('--data_root', help='data root')
-    parser.add_argument('--work_dir', help='work dir')
-    args = parser.parse_args()
-    if 'LOCAL_RANK' not in os.environ:
-        os.environ['LOCAL_RANK'] = str(args.local_rank)
-    return args
-
 
 def main():
     args = parse_args()
@@ -195,45 +221,33 @@ def main():
         model.CLASSES = dataset.CLASSES
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
-        outputs = single_gpu_test(model, data_loader, args.show)
+        pred_pairs, gt_pairs = single_gpu_test(model, data_loader, args.show)
     else:
         model = MMDistributedDataParallel(model.cuda())
-        outputs = multi_gpu_test(model, data_loader, args.tmpdir)
-    # import ipdb; ipdb.set_trace()
+        pred_pairs, gt_pairs = multi_gpu_test(model, data_loader, args.tmpdir)
 
     rank, _ = get_dist_info()
     if args.out and rank == 0:
         print('\nwriting results to {}'.format(args.out))
-        mmcv.dump(outputs, args.out)
+        mmcv.dump(pred_pairs, args.out)
         eval_types = args.eval
         if eval_types:
             print('Starting evaluate {}'.format(' and '.join(eval_types)))
-            if eval_types == ['proposal_fast']:
-                result_file = args.out
-                coco_eval(result_file, eval_types, dataset.coco)
-            else:
-                if not isinstance(outputs[0], dict):
-                    result_files = results2json(dataset, outputs, args.out)
-                    coco_eval(result_files, eval_types, dataset.coco)
-                else:
-                    for name in outputs[0]:
-                        print('\nEvaluating {}'.format(name))
-                        outputs_ = [out[name] for out in outputs]
-                        result_file = args.out + '.{}'.format(name)
-                        result_files = results2json(dataset, outputs_,
-                                                    result_file)
-                        coco_eval(result_files, eval_types, dataset.coco)
+            num_sample = len(pred_pairs)
+            true_positive = 0
+            num_gt = 0
+            for i in tqdm(range(num_sample)):
+                for gt_box in gt_pairs[i]:
+                    num_gt+=1
+                    for pred_box in pred_pairs[i]:
+                        iou = bbox_overlaps(gt_box.cpu().numpy(),pred_box.cpu().numpy()[:,:4])  ##
+                        if iou[0][0] > 0.5 and iou[1][-1] > 0.5:
+                            true_positive+=1
 
-    # Save predictions in the COCO json format
-    if args.json_out and rank == 0:
-        if not isinstance(outputs[0], dict):
-            results2json(dataset, outputs, args.json_out)
-        else:
-            for name in outputs[0]:
-                outputs_ = [out[name] for out in outputs]
-                result_file = args.json_out + '.{}'.format(name)
-                results2json(dataset, outputs_, result_file)
-
+            table_data = [['VOCTest', 'Recall', 'Precision'],
+                          ['iou:0.6', round(true_positive/num_gt,4), round(true_positive/(num_sample*32),4)]] 
+            print("\n--------------------------------------")
+            print(AsciiTable(table_data).table)
 
 if __name__ == '__main__':
     main()

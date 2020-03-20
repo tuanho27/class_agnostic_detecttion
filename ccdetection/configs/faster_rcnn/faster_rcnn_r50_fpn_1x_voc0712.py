@@ -103,7 +103,7 @@ test_cfg = dict(
         nms_pre=256,
         nms_post=128,
         max_num=128,
-        nms_thr=0.7,
+        nms_thr=0.6,
         min_bbox_size=0),
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
@@ -128,6 +128,7 @@ train_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', with_bbox=True),
     dict(
         type='MultiScaleFlipAug',
         img_scale=(900, 600),
@@ -138,7 +139,7 @@ test_pipeline = [
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
             dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img']),
+            dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
         ])
 ]
 data = dict(

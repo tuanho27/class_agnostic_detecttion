@@ -215,7 +215,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                             else:
                                 pairs.append(torch.cat(([rpn_outputs[0]['proposal_list'][i][idx0],
                                                                     rpn_outputs[1]['proposal_list'][i][idx1]]),dim=0))
-
                                 pairs_feats.append(torch.cat(([rpn_outputs[0]['bbox_feats'][i][idx0],
                                                                        rpn_outputs[1]['bbox_feats'][i][idx1]]),dim=0))
                                 pairs_targets.append(idx1==0) ## just keep tensor binary value
@@ -307,7 +306,8 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                      bbox_feats=bbox_feats)
 
     ### For inference pair images (this function re-used as augmementation test)
-    def aug_test(self, img, img_meta, proposals=None, rescale=False):
+    def aug_test(self, img, img_meta, gt_bboxes=None,
+                            gt_labels=None, proposals=None, rescale=False):
         result_outputs = []
         pairs = []
         pairs_feats = []
@@ -327,8 +327,8 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         pair_score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
         pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
-        print("Total pairs: ",pairs_feats.size()[0])
-        return pairs[torch.argsort(pair_score_relation)[-30:]]
+        # print("Total pairs: ",pairs_feats.size()[0])
+        return pairs[torch.argsort(pair_score_relation)[-64:]]
 
 
     def simple_test_single(self, img, img_meta, proposals=None, rescale=False):
@@ -339,7 +339,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         proposal_list = self.simple_test_rpn(
             x, img_meta, self.test_cfg.rpn) if proposals is None else proposals
-        proposal_list, _ =  nms(proposal_list[0],0.15)
+        proposal_list, _ =  nms(proposal_list[0],0.1)
         rois = bbox2roi([proposal_list])
         roi_feats = self.bbox_roi_extractor(
             x[:len(self.bbox_roi_extractor.featmap_strides)], rois)

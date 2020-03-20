@@ -127,6 +127,7 @@ train_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', with_bbox=True),
     dict(
         type='MultiScaleFlipAug',
         img_scale=(1080, 720),
@@ -137,7 +138,8 @@ test_pipeline = [
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
             dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img']),
+            # dict(type='Collect', keys=['img']),
+            dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
         ])
 ]
 data = dict(
@@ -153,16 +155,20 @@ data = dict(
         ),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        # ann_file=data_root + 'annotations/instances_val2017.json',
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        # img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/train2017/',
         pipeline=test_pipeline,
         txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/val2017/',
+        # ann_file=data_root + 'annotations/instances_val2017.json',
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        # img_prefix=data_root + 'images/val2017/',
+        img_prefix=data_root + 'images/train2017/',
         pipeline=test_pipeline,
         txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
