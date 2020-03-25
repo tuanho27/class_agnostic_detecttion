@@ -70,7 +70,7 @@ def single_gpu_test(model, data_loader, show=False):
 
         for i in range(data['gt_labels'][0][0].size(1)):
             for j in range(data['gt_labels'][1][0].size(1)):
-                if data['gt_labels'][0][0].view(-1)[i] == data['gt_labels'][0][0].view(-1)[j]:
+                if data['gt_labels'][0][0].view(-1)[i] == data['gt_labels'][1][0].view(-1)[j]:
                     gt_positive_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
                 else:
                     gt_negative_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
