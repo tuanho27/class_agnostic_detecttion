@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import mmcv
 import numpy as np
 
-from .custom import CustomDataset, CustomPairDataset
+from .custom import CustomDataset, CustomPairDataset, CustomPairGenerateDataset
 from .registry import DATASETS
 
 
@@ -86,12 +86,11 @@ class XMLDataset(CustomDataset):
         return ann
 
 
-
 @DATASETS.register_module
 class XMLPairDataset(CustomPairDataset):
 # class XMLPairDataset(CustomPairGenerateDataset): ## for generate pair data VOC
-    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']
-    
+
+    CLASSES_IGNORE = ['chair', 'cow', 'horse', 'bird', 'tvmonitor']    
     def __init__(self, min_size=None, **kwargs):
         self.cat2label = {cat: i + 1 for i, cat in enumerate(self.CLASSES)}
         self.min_size = min_size

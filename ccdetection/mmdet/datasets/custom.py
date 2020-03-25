@@ -194,6 +194,7 @@ class CustomDataset(Dataset):
 @DATASETS.register_module
 class CustomPairDataset(Dataset):
     CLASSES = None
+    CLASSES_IGNORE = None
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -254,6 +255,7 @@ class CustomPairDataset(Dataset):
             self._set_group_flag()
         # processing pipeline
         self.pipeline = Compose(pipeline)
+        # self.prepare_train_img(0)
         
     def __len__(self):
         # return len(self.img_infos)
@@ -339,12 +341,12 @@ class CustomPairDataset(Dataset):
         img0_info = self.img_infos[int(idx0)]
         ann0_info = self.get_ann_info(int(idx0))
 
-        ################# offline pair images choice
+        ################# offline pair images choice ##################
         idx1 = list(self.list_pair_ids[idx].split(","))[1]
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
 
-        ################# online random choice
+        ################# online random choice ##############
         # for i in range(1,len(self.img_infos)):
         #     idx1 = int((i + random.randint(1,len(self.img_infos)))/2) 
         #     if idx1 != idx:
@@ -377,10 +379,10 @@ class CustomPairDataset(Dataset):
         idx0 = list(self.list_pair_test_ids[idx].split(","))[0]
         img0_info = self.img_infos[int(idx0)]
         ann0_info = self.get_ann_info(int(idx0))
-
         idx1 = list(self.list_pair_test_ids[idx].split(","))[1]
         img1_info = self.img_infos[int(idx1)]
         ann1_info = self.get_ann_info(int(idx1))
+        # print(img0_info,img1_info )
 
         results_0 = dict(img_info=img0_info, ann_info=ann0_info)
         results_1 = dict(img_info=img1_info, ann_info=ann1_info)
@@ -397,7 +399,7 @@ class CustomPairDataset(Dataset):
         data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
                     img=[data0['img'],data1['img']],
                     gt_bboxes=[data0['gt_bboxes'],data1['gt_bboxes']],
-                    gt_labels=[data0['gt_labels'],data1['gt_labels']],)
+                    gt_labels=[data0['gt_labels'],data1['gt_labels']])
         return data
 
 
@@ -407,6 +409,7 @@ class CustomPairDataset(Dataset):
 @DATASETS.register_module
 class CustomPairGenerateDataset(Dataset):
     CLASSES = None
+    CLASSES_IGNORE = None
     def __init__(self,
                  ann_file,
                  pipeline,
@@ -419,10 +422,13 @@ class CustomPairGenerateDataset(Dataset):
                  counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
         
-        self.txt_file = open(txt_file,"w")
-        self.txt_eval_file = open(txt_eval_file,"w")
+        self.txt_file = txt_file #open(txt_file,"w")
+        # self.txt_eval_file = open(txt_eval_file,"w")
 
         self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
+        if "coco" in self.txt_file:
+            self.class_interest = [self.CLASSES.index(i) for i in self.CLASSES_TRAIN]
+
         self.counter = counter
         self.ann_file = ann_file
         self.data_root = data_root
@@ -543,69 +549,45 @@ class CustomPairGenerateDataset(Dataset):
         list_pairs = []
         self.counter+=1
         
-        for idx1 in range(1,len(self.img_infos)):
-            # idx1 = random.randint(1,len(self.img_infos)) 
-            if idx1 != idx0:
-                img1_info = self.img_infos[idx1]
-                ann1_info = self.get_ann_info(idx1)
-                if self.common_member(ann0_info['labels'], ann1_info['labels']):
-                    list_pairs.append(idx1)
+        ################# Add to generate COCO data with 15 classes ##############
+        class_common =  set(ann0_info['labels']) & set(self.class_interest)
+        if class_common:
+             for idx1 in range(1,len(self.img_infos)):
+                if idx1 != idx0:
+                    img1_info = self.img_infos[idx1]
+                    ann1_info = self.get_ann_info(idx1)
+                    if set(ann1_info['labels']) & class_common:
+                        # print("LABEL0: ", ann0_info['labels'])
+                        # print("LABEL1: ", ann1_info['labels'])
+                        list_pairs.append(idx1)
 
         if len(list_pairs) > 0:
-            for i in range(0,20):
+            for i in range(0,16):
                 idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
-                if idx1 != idx0:
-                    print("IDX ", idx0, idx1)
-                    line = str(idx0)  + "," + str(idx1) + "\n"
-                    self.txt_file.write(str(line))
+                print("IDX ", idx0, idx1)
+                line = str(idx0)  + "," + str(idx1) + "\n"
+                with open(self.txt_file, 'a') as the_file:
+                    the_file.write(str(line))
+
+        ################## Generate VOC data #####################
+        # for idx1 in range(1,len(self.img_infos)):
+        #     if idx1 != idx0:
+        #         img1_info = self.img_infos[idx1]
+        #         ann1_info = self.get_ann_info(idx1)
+        #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
+        #             list_pairs.append(idx1)
+
+        # if len(list_pairs) > 0:
+        #     for i in range(0,16):
+        #         idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
+        #         if idx1 != idx0:
+        #             print("IDX ", idx0, idx1)
+        #             line = str(idx0)  + "," + str(idx1) + "\n"
+        #             with open(self.txt_file, 'a') as the_file:
+        #                 the_file.write(str(line))
 
         if self.counter == len(self.img_infos) - 1:
             self.txt_file.close()
 
-        ######################################################
-
-        results_0 = dict(img_info=img0_info, ann_info=ann0_info)
-        results_1 = dict(img_info=img1_info, ann_info=ann1_info)
-
-        if self.proposals is not None:
-            results_0['proposals'] = self.proposals[idx0]
-            results_1['proposals'] = self.proposals[idx1]
-        self.pre_pipeline(results_0)
-        self.pre_pipeline(results_1)
-
-        data0 = self.pipeline(results_0)
-        data1 = self.pipeline(results_1)
-        
-        data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
-                    img=[data0['img'],data1['img']],
-                    gt_bboxes=[data0['gt_bboxes'],data1['gt_bboxes']],
-                    gt_labels=[data0['gt_labels'],data1['gt_labels']],
-                    )
-        return data
-
-    def prepare_test_img(self, idx):
-        
-        ################# offline pair images choice
-        idx0 = list(self.list_pair_test_ids[idx].split(","))[0]
-        img0_info = self.img_infos[int(idx0)]
-        ann0_info = self.get_ann_info(int(idx0))
-
-        idx1 = list(self.list_pair_test_ids[idx].split(","))[1]
-        img1_info = self.img_infos[int(idx1)]
-        ann1_info = self.get_ann_info(int(idx1))
-
-        results_0 = dict(img_info=img0_info, ann_info=ann0_info)
-        results_1 = dict(img_info=img1_info, ann_info=ann1_info)
-
-        if self.proposals is not None:
-            results_0['proposals'] = self.proposals[idx0]
-            results_1['proposals'] = self.proposals[idx1]
-        self.pre_pipeline(results_0)
-        self.pre_pipeline(results_1)
-
-        data0 = self.pipeline(results_0)
-        data1 = self.pipeline(results_1) 
-
-        data = dict(img_meta=[data0['img_meta'],data1['img_meta']],
-                    img=[data0['img'],data1['img']])
+        data = dict(data=0)
         return data

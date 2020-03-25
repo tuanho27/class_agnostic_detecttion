@@ -30,8 +30,10 @@ pip install -e mmdetection/mmdet/models/backbones/pytorch-image-models
 0. To generate dataset
 COCO:
 - Uncomment line 10 in file: ccdetection/mmdet/datasets/coco_pair.py, and comment line 11 
+- Uncomment line 553 - 569 in file:  ccdetection/mmdet/datasets/custom.py
 VOC:
 - Uncomment line 92 in file: ccdetection/mmdet/datasets/xml_style.py, and comment line 91
+- Uncomment line 553 - 569 in file:  ccdetection/mmdet/datasets/custom.py
 
 Then change the config file in ./scripts/tuan/generate_pair_dataset.sh and execute this file, wait until enough expected sample
 

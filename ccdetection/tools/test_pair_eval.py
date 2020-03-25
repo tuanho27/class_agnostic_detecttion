@@ -56,8 +56,7 @@ def single_gpu_test(model, data_loader, show=False):
     prog_bar = mmcv.ProgressBar(len(dataset))
     gt_pairs = []
     for i, data in enumerate(data_loader):
-
-        ## img
+        ## img test draw
         # size = (900, 600)
         # img0_0 = mmcv.imread(data['img_meta'][0][0].data[0][0]['filename'])
         # img1_0 = mmcv.imread(data['img_meta'][1][0].data[0][0]['filename'])
@@ -71,7 +70,7 @@ def single_gpu_test(model, data_loader, show=False):
 
         for i in range(data['gt_labels'][0][0].size(1)):
             for j in range(data['gt_labels'][1][0].size(1)):
-                if data['gt_labels'][0][0].view(-1)[i] == data['gt_labels'][1][0].view(-1)[j]:
+                if data['gt_labels'][0][0].view(-1)[i] == data['gt_labels'][0][0].view(-1)[j]:
                     gt_positive_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
                 else:
                     gt_negative_pairs.append(torch.stack((gt_bbox_0[i], gt_bbox_1[j])))
@@ -81,7 +80,7 @@ def single_gpu_test(model, data_loader, show=False):
             import ipdb; ipdb.set_trace()
 
         with torch.no_grad():
-            result = model(return_loss=False, rescale=not show, **data)
+            result, _ = model(return_loss=False, rescale=not show, **data)
         results.append(result)
 
         if show:
@@ -102,7 +101,7 @@ def multi_gpu_test(model, data_loader, tmpdir=None):
         prog_bar = mmcv.ProgressBar(len(dataset))
     for i, data in enumerate(data_loader):
         with torch.no_grad():
-            result = model(return_loss=False, rescale=True, **data)
+            result,_ = model(return_loss=False, rescale=True, **data)
         results.append(result)
 
         if rank == 0:
@@ -245,7 +244,7 @@ def main():
                             true_positive+=1
 
             table_data = [['VOCTest', 'Recall', 'Precision'],
-                          ['iou:0.6', round(true_positive/num_gt,4), round(true_positive/(num_sample*32),4)]] 
+                          ['iou:0.5', round(true_positive/num_gt,4), round(true_positive/(num_sample*32),4)]] 
             print("\n--------------------------------------")
             print(AsciiTable(table_data).table)
 

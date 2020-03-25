@@ -35,22 +35,20 @@ def parse_losses(losses):
 
 
 def batch_processor(model, data, train_mode):
-    # Test dataset 
+    # Test dataset while training 
     import mmcv, cv2
     import numpy as np
     size = (900, 600)
     img0_0 = mmcv.imread(data['img_meta'][0].data[0][0]['filename'])
     img1_0 = mmcv.imread(data['img_meta'][1].data[0][0]['filename'])
     img = np.concatenate((mmcv.imresize(img0_0, size), mmcv.imresize(img1_0, size)), axis=1) 
-    cv2.imwrite("./pair_{}_test.jpg".format(4), img)
-    # import ipdb; ipdb.set_trace()
+    cv2.imwrite("./pair_train_testing.jpg", img)
 
     losses = model(**data)
     loss, log_vars = parse_losses(losses)
     outputs = dict(
         loss=loss, log_vars=log_vars, num_samples=len(data['img'][0].data) 
                                     if isinstance(data['img'],list) else len(data['img'].data))
-    # outputs = 0    
     return outputs
 
 

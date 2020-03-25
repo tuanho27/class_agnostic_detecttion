@@ -26,10 +26,14 @@ class CocoPairDataset(CustomPairDataset):
     CLASSES_IGNORE = ['backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee','skis', 
                       'snowboard', 'sports_ball', 'kite', 'baseball_bat','potted_plant', 'bed', 
                       'dining_table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard'] 
-                      
+
+    CLASSES_TRAIN =['person', 'car', 'bench', 'backpack', 'umbrella', 'handbag', 'suitcase', 'bottle',
+                        'knife', 'chair', 'couch', 'laptop',  'cell_phone', 'book', 'clock',  'teddy_bear']  
+
     def load_annotations(self, ann_file):
         self.coco = COCO(ann_file)
         self.cat_ids = self.coco.getCatIds()
+        # print(self.cat_ids)
         self.cat2label = {
             cat_id: i + 1
             for i, cat_id in enumerate(self.cat_ids)

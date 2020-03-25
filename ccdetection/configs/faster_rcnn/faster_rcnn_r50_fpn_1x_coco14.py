@@ -77,7 +77,7 @@ train_cfg = dict(
         debug=False),
     rpn_proposal=dict(
         nms_across_levels=False,
-        nms_pre=1000,
+        nms_pre=512,
         nms_post=64,
         max_num=64,
         nms_thr=0.7, #0.7 -> 0.5
@@ -100,11 +100,12 @@ train_cfg = dict(
 test_cfg = dict(
     rpn=dict(
         nms_across_levels=False,
-        nms_pre=64,
-        nms_post=32,
-        max_num=32,
-        nms_thr=0.4,
+        nms_pre=128,
+        nms_post=64,
+        max_num=64,
+        nms_thr=0.5,
         min_bbox_size=0),
+    topk_pair_select=100,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing
@@ -133,7 +134,7 @@ test_pipeline = [
         img_scale=(1080, 720),
         flip=False,
         transforms=[
-            dict(type='Resize', keep_ratio=True),
+            dict(type='Resize', keep_ratio=False),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
@@ -146,6 +147,13 @@ data = dict(
     imgs_per_gpu=imgs_per_gpu,
     workers_per_gpu=4,
     train=dict(
+        # type=dataset_type,
+        # ann_file=data_root + 'annotations/instances_val2017.json',
+        # img_prefix=data_root + 'images/train2017/',
+        # pipeline=train_pipeline,
+        # txt_file = './list_pairs_img_coco2014.txt', 
+        # txt_eval_file = './list_pairs_img_test_coco2014.txt',
+        #
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
@@ -155,20 +163,18 @@ data = dict(
         ),
     val=dict(
         type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_val2017.json',
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        # img_prefix=data_root + 'images/val2017/',
-        img_prefix=data_root + 'images/train2017/',
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
         txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
         type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_val2017.json',
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        # img_prefix=data_root + 'images/val2017/',
-        img_prefix=data_root + 'images/train2017/',
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        # ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'images/val2017/',
+        # img_prefix=data_root + 'images/train2017/',
         pipeline=test_pipeline,
         txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
@@ -181,7 +187,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[8, 11])
+    step=[8, 11, 14])
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -192,10 +198,10 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 12
+total_epochs = 15
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14'
+work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14_update_data'
 # load_from = None
 load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None

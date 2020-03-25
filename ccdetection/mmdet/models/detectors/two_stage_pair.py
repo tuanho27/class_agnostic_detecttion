@@ -184,10 +184,16 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                        proposals=None))
 
         losses_rpn = dict(rpn_losses_cls = rpn_outputs[0]['rpn_losses']['rpn_losses_cls'] + 
-                                                        rpn_outputs[1]['rpn_losses']['rpn_losses_cls'],
+                                           rpn_outputs[1]['rpn_losses']['rpn_losses_cls'],
                           rpn_losses_box = rpn_outputs[0]['rpn_losses']['rpn_losses_box'] + 
-                                                        rpn_outputs[1]['rpn_losses']['rpn_losses_box'])
+                                           rpn_outputs[1]['rpn_losses']['rpn_losses_box'])
         losses.update(losses_rpn)
+
+        losses_rcnn = dict(rcnn_loss_cls=rpn_outputs[0]['loss_stage2']['loss_cls'] +
+                                         rpn_outputs[1]['loss_stage2']['loss_cls'],
+                           rcnn_loss_bbox=rpn_outputs[0]['loss_stage2']['loss_bbox'] +
+                                          rpn_outputs[1]['loss_stage2']['loss_bbox'])
+        losses.update(losses_rcnn)
 
         ## calculate cost function for each pair in two batch images
         num_imgs = img[0].size()[0] 
@@ -281,6 +287,7 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             if gt_bboxes_ignore is None: 
                 gt_bboxes_ignore = [None for _ in range(num_imgs)]
             bbox_feats = []
+            sampling_results = []
             for i in range(num_imgs):
                 assign_result = bbox_assigner.assign(proposal_list[i],
                                                      gt_bboxes[i],
@@ -292,15 +299,31 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                     gt_bboxes[i],
                     gt_labels[i],
                     feats=[lvl_feat[i][None] for lvl_feat in x])
+                sampling_results.append(sampling_result)
+
                 rois = bbox2roi([sampling_result.bboxes])
                 bbox_feats.append(self.bbox_roi_extractor(tuple(j[i:i+1] for j in x), rois))
                 if self.with_shared_head:
                     bbox_feats.append(self.shared_head(bbox_feats))
 
+            ## add for stage 2 losses
+            _rois = bbox2roi([res.bboxes for res in sampling_results])
+            _bbox_feats = self.bbox_roi_extractor(
+                x[:self.bbox_roi_extractor.num_inputs], _rois)
+            if self.with_shared_head:
+                _bbox_feats = self.shared_head(_bbox_feats)
+            cls_score, bbox_pred = self.bbox_head(_bbox_feats)
+
+            bbox_targets = self.bbox_head.get_target(sampling_results,
+                                                    gt_bboxes, gt_labels,
+                                                    self.train_cfg.rcnn)
+            loss_stage2 = self.bbox_head.loss(cls_score, bbox_pred, *bbox_targets)
+
             rpn_losses = dict(rpn_losses_cls=torch.stack(rpn_losses['loss_rpn_cls']).sum(),
                             rpn_losses_box =torch.stack(rpn_losses['loss_rpn_bbox']).sum())
-
+                            
         return  dict(rpn_losses=rpn_losses,
+                     loss_stage2=loss_stage2,
                      proposal_list=proposal_list,
                      proposal_label = proposal_label, 
                      bbox_feats=bbox_feats)
@@ -311,8 +334,10 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
         result_outputs = []
         pairs = []
         pairs_feats = []
-        for i, im in enumerate(img):
-            output = self.simple_test_single(im[0], img_meta[i][0])
+        pairs_feats_reverse = []
+
+        for i in range(2):
+            output = self.simple_test_single(img[i][0], img_meta[i][0])
             result_outputs.append(output)
 
         ## pairs number of proposal
@@ -322,13 +347,27 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                     result_outputs[1]['proposal_list'][j]), dim=0))
                 pairs_feats.append(torch.stack((result_outputs[0]['proposal_feats'][i],
                                                     result_outputs[1]['proposal_feats'][j]), dim=0))   
+
+                pairs_feats_reverse.append(torch.stack((result_outputs[1]['proposal_feats'][j],
+                                                    result_outputs[0]['proposal_feats'][i]), dim=0)) 
         pairs = torch.stack(pairs) 
         pairs_feats = torch.stack(pairs_feats)  
+        pairs_feats_reverse = torch.stack(pairs_feats_reverse)  
 
-        pair_score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
+        score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
+        # print("Pair ",score_siamese.shape)
+        # import ipdb; ipdb.set_trace()
+
         pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
-        # print("Total pairs: ",pairs_feats.size()[0])
-        return pairs[torch.argsort(pair_score_relation)[-64:]]
+        pair_score_relation_reverse = self.relation_matching_head.forward_test(pairs, pairs_feats_reverse)
+        scores_relation = pairs[:,0,4] *  pairs[:,1,4] * torch.sqrt((pair_score_relation + pair_score_relation_reverse)/2)
+
+        stage2_results = [result_outputs[0]['bbox_results'],result_outputs[1]['bbox_results']]
+
+        return pairs[torch.argsort(scores_relation)[-self.test_cfg.topk_pair_select:]], stage2_results
+
+        ## For test single image,just use top 10
+        # return pairs[torch.argsort(scores_relation)[-2:]], stage2_results
 
 
     def simple_test_single(self, img, img_meta, proposals=None, rescale=False):
@@ -339,14 +378,17 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         proposal_list = self.simple_test_rpn(
             x, img_meta, self.test_cfg.rpn) if proposals is None else proposals
-        proposal_list, _ =  nms(proposal_list[0],0.1)
-        rois = bbox2roi([proposal_list])
+        det_bboxes, det_labels = self.simple_test_bboxes(
+                        x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
+        bbox_results = bbox2result(det_bboxes, det_labels,
+                                   self.bbox_head.num_classes)
+        rois = bbox2roi(proposal_list)
         roi_feats = self.bbox_roi_extractor(
             x[:len(self.bbox_roi_extractor.featmap_strides)], rois)
         if self.with_shared_head:
             roi_feats = self.shared_head(roi_feats)
 
-        return dict(proposal_list=proposal_list, proposal_feats=roi_feats)
+        return dict(proposal_list=proposal_list[0], proposal_feats=roi_feats, bbox_results=bbox_results)
 
 ### additional cls ###
 class dotdict(dict):

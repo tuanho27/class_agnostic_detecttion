@@ -92,14 +92,16 @@ def inference_pair_detector(model, img):
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
     # build the data pipeline
-    test_pipeline = [LoadImage()] + cfg.data.test.pipeline[1:]
+    # import ipdb; ipdb.set_trace()
+    cfg.data.test.pipeline[-1]['transforms'][-1]['keys'] = ['img'] 
+    test_pipeline = [LoadImage()] + cfg.data.test.pipeline[2:]
     test_pipeline = Compose(test_pipeline)
     # prepare data
     data0 = dict(img=img[0])
     data0 = test_pipeline(data0)
 
-    # test_pipeline_1 = [LoadImage_Flip()] + cfg.data.test.pipeline[1:]
-    test_pipeline_1 = [LoadImage()] + cfg.data.test.pipeline[1:]
+    # test_pipeline_1 = [LoadImage_Flip()] + cfg.data.test.pipeline[2:]
+    test_pipeline_1 = [LoadImage()] + cfg.data.test.pipeline[2:]
     test_pipeline_1 = Compose(test_pipeline_1)
     data1 = dict(img=img[1])
     data1 = test_pipeline_1(data1)

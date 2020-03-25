@@ -101,10 +101,11 @@ test_cfg = dict(
     rpn=dict(
         nms_across_levels=False,
         nms_pre=256,
-        nms_post=128,
-        max_num=128,
-        nms_thr=0.6,
+        nms_post=64,
+        max_num=64,
+        nms_thr=0.5,
         min_bbox_size=0),
+    topk_pair_select=100,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing
@@ -146,26 +147,33 @@ data = dict(
     imgs_per_gpu=imgs_per_gpu,
     workers_per_gpu=8,
     train=dict(
+        # type=dataset_type,
+        # ann_file=data_root + 'VOC2007TEST/val.txt',
+        # img_prefix=data_root + 'VOC2007TEST/',
+        # pipeline=train_pipeline,
+        # txt_file = './list_pairs_img_voc2007.txt',
+        # txt_eval_file = './list_pairs_img_test_voc2007.txt'), 
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
         pipeline=train_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt', 
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_voc2007.txt'),
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt',
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_voc2007.txt'), 
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
-        img_prefix=data_root + 'VOC2007/',
+        ann_file=data_root + 'VOC2007TEST/val.txt',
+        img_prefix=data_root + 'VOC2007TEST/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt', 
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt',
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_voc2007.txt'),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
-        img_prefix=data_root + 'VOC2007/',
+        ann_file=data_root + 'VOC2007TEST/val.txt',
+        img_prefix=data_root + 'VOC2007TEST/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt', 
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_voc2007.txt',
         txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_voc2007.txt'))
+
 evaluation = dict(interval=1, metric='mAP')
 # optimizer
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
@@ -182,17 +190,17 @@ lr_config = dict(
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=2,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 12  # actual epoch = 4 * 3 = 12
+total_epochs = 15  # actual epoch = 4 * 3 = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_voc0712_test_update_1'
+work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_voc0712_update_data'
 # load_from = None
 load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None

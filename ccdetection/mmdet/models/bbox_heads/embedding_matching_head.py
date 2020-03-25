@@ -100,7 +100,10 @@ class SiameseMatching(nn.Module):
     def forward_test(self, pairs, pairs_feats):
         dist_pairs = []
         for i in range(len(pairs)):
-            pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
+            feat = pairs_feats[i]
+            for conv in self.siamese_conv:
+                feat = conv(feat)
+            pairs_fc = [self.siamese_embedding(feat[j].view(-1)) for j in range(2)]
             if self.dist_mode == 'cosine':
                 dist_pairs.append(self.dist(pairs_fc[0],pairs_fc[1]))
             else:
