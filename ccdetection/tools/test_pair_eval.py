@@ -244,7 +244,7 @@ def main():
                             true_positive+=1
 
             table_data = [['VOCTest', 'Recall', 'Precision'],
-                          ['iou:0.5', round(true_positive/num_gt,4), round(true_positive/(num_sample*32),4)]] 
+                          ['iou:0.5', round(true_positive/num_gt,4), round(true_positive/(num_sample*100),4)]] 
             print("\n--------------------------------------")
             print(AsciiTable(table_data).table)
 

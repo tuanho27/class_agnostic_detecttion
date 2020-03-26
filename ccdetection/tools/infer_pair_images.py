@@ -30,7 +30,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    colors=['green', 'red', 'blue', 'yellow', 'magenta','cyan']
+    colors=['blue','cyan', 'green'] #, 'red', 'yellow', 'magenta']
     colors = [mmcv.color_val(c) for c in colors]
     if isinstance(args.config, str):
         config = mmcv.Config.fromfile(args.config)
@@ -75,9 +75,9 @@ def main():
 
     ## Test single images
     #cat 
-    img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000215.jpg"
-    img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000122.jpg"
-    #sheep
+    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000215.jpg"
+    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000122.jpg"
+    #sheep 
     # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/007230.jpg"
     # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/006678.jpg"
     #horse 
@@ -89,8 +89,8 @@ def main():
     # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/005114.jpg"
 
     #toyota images
-    # img0_file  = img_files[1]
-    # img1_file = img_files[-1]
+    img0_file  = img_files[1]
+    img1_file = img_files[200]
 
     model = init_detector(args.config, args.checkpoint, device='cuda')
     print("Start infer model !!!\n")

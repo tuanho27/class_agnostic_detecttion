@@ -6,7 +6,7 @@ from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
 from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
-from mmdet.ops import nms
+from mmdet.ops import soft_nms
 
 @DETECTORS.register_module
 class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
@@ -355,8 +355,8 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
         pairs_feats_reverse = torch.stack(pairs_feats_reverse)  
 
         score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
+        score_siamese = pairs[:,0,4] *  pairs[:,1,4] * torch.sqrt(torch.sigmoid(score_siamese))
         # print("Pair ",score_siamese.shape)
-        # import ipdb; ipdb.set_trace()
 
         pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
         pair_score_relation_reverse = self.relation_matching_head.forward_test(pairs, pairs_feats_reverse)
@@ -364,10 +364,10 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         stage2_results = [result_outputs[0]['bbox_results'],result_outputs[1]['bbox_results']]
 
-        return pairs[torch.argsort(scores_relation)[-self.test_cfg.topk_pair_select:]], stage2_results
+        # return pairs[torch.argsort(score_siamese)[-self.test_cfg.topk_pair_select:]], stage2_results
 
         ## For test single image,just use top 10
-        # return pairs[torch.argsort(scores_relation)[-2:]], stage2_results
+        return pairs[torch.argsort(scores_relation)[-10:]], stage2_results
 
 
     def simple_test_single(self, img, img_meta, proposals=None, rescale=False):
@@ -378,17 +378,21 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         proposal_list = self.simple_test_rpn(
             x, img_meta, self.test_cfg.rpn) if proposals is None else proposals
+            
         det_bboxes, det_labels = self.simple_test_bboxes(
                         x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
         bbox_results = bbox2result(det_bboxes, det_labels,
                                    self.bbox_head.num_classes)
-        rois = bbox2roi(proposal_list)
+        proposal_list, _ =  soft_nms(proposal_list[0], iou_thr=0.15, min_score=0.3)
+        rois = bbox2roi([proposal_list])
+
+        # rois = bbox2roi(proposal_list)
         roi_feats = self.bbox_roi_extractor(
             x[:len(self.bbox_roi_extractor.featmap_strides)], rois)
         if self.with_shared_head:
             roi_feats = self.shared_head(roi_feats)
 
-        return dict(proposal_list=proposal_list[0], proposal_feats=roi_feats, bbox_results=bbox_results)
+        return dict(proposal_list=proposal_list, proposal_feats=roi_feats, bbox_results=bbox_results)
 
 ### additional cls ###
 class dotdict(dict):
