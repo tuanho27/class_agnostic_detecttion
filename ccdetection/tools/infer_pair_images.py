@@ -41,6 +41,7 @@ def main():
         return 0
     img_files = sorted(glob.glob(f'{args.img_folder}/*.png')) #glob.glob(f'{args.img_folder}/*.png') #
 
+    #############################################
     ### Test all dataset in data folder
     # out_folder= './testing/outputs/{}'.format(args.img_folder.split("/")[-1])
     # if not os.path.isdir(out_folder):
@@ -72,29 +73,42 @@ def main():
     ##     if count == 2:
     ##         break
 
-
-    ## Test single images
+    ###############################################
+    ### Test single images 
     #cat 
     # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000215.jpg"
     # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000122.jpg"
+
     #sheep 
-    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/007230.jpg"
-    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/006678.jpg"
+    img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/006678.jpg"
+    img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/002209.jpg"
+    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/007230.jpg" ## two sheeps
+
     #horse 
     # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001013.jpg"
     # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/000056.jpg"
     
-    #horses + person
+    #cat,horse + person
+    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001173.jpg"
+    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001769.jpg" 
+
+    ##### False cases ######
+    #horses + person 
     # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/003889.jpg"
-    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/005114.jpg"
+    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001452.jpg" 
+
+    #person + animals
+    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001769.jpg" 
+    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007TEST/JPEGImages/001914.jpg" 
+
 
     #toyota images
-    img0_file  = img_files[1]
-    img1_file = img_files[200]
+    # img0_file  = img_files[1]
+    # img1_file = img_files[200]
 
     model = init_detector(args.config, args.checkpoint, device='cuda')
     print("Start infer model !!!\n")
-    results, stage2_results = inference_pair_detector(model, [img0_file,img1_file])
+    results, stage2_results, scores = inference_pair_detector(model, [img0_file,img1_file])
 
     img0 = mmcv.imread(img0_file)    
     img0 = mmcv.imresize(img0, size, return_scale=True)[0]
@@ -113,10 +127,19 @@ def main():
         cv2.rectangle(img1, (bbox_int_1[0], bbox_int_1[1]), (bbox_int_1[2], bbox_int_1[3]), colors[cl], thickness=2)
 
     img = np.concatenate((img0, img1), axis=1)
-    cv2.imwrite("./testing/output_pair_test.jpg", img)
 
-    show_result(img0, stage2_results[0], model.CLASSES,0.3, show=False,out_file="./testing/output_0.png")
-    show_result(img1, stage2_results[1], model.CLASSES,0.3, show=False,out_file="./testing/output_1.png")
+    for out, score in zip(results, scores):    
+        centres_0=(0.5*(out[0][0] + out[0][2]), 0.5*(out[0][1] + out[0][3])) 
+        centres_1=(0.5*(out[1][0] + out[1][2]) + size[0], 0.5*(out[1][1] + out[1][3])) 
+
+        # import ipdb; ipdb.set_trace()
+        cv2.line(img, (int(centres_0[0]),int(centres_0[1])), (int(centres_1[0]),int(centres_1[1])), (0, 64, 255), 2)
+        cv2.putText(img,'Match score: %f'%score, (int((centres_0[0]+centres_1[0])*0.5),int((centres_0[1]+centres_1[1])*0.5)), 
+                                                                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (256,64,0), 2)
+    cv2.imwrite("./testing/False_sheep_output_pair_test.jpg", img)
+    
+    # show_result(img0, stage2_results[0], model.CLASSES,0.3, show=False,out_file="./testing/output_0.png")
+    # show_result(img1, stage2_results[1], model.CLASSES,0.3, show=False,out_file="./testing/output_1.png")
 
 
 if __name__ == '__main__':

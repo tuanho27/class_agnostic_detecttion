@@ -245,11 +245,11 @@ class CustomPairDataset(Dataset):
         else:
             self.proposals = None
         # filter images with no annotation during training
-        if not test_mode:
-            valid_inds = self._filter_imgs()
-            self.img_infos = [self.img_infos[i] for i in valid_inds]
-            if self.proposals is not None:
-                self.proposals = [self.proposals[i] for i in valid_inds]
+        # if not test_mode:
+        #     valid_inds = self._filter_imgs()
+        #     self.img_infos = [self.img_infos[i] for i in valid_inds]
+        #     if self.proposals is not None:
+        #         self.proposals = [self.proposals[i] for i in valid_inds]
         # set group flag for the sampler
         if not self.test_mode:
             self._set_group_flag()

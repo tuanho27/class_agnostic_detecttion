@@ -106,6 +106,9 @@ test_cfg = dict(
         nms_thr=0.6,
         min_bbox_size=0),
     topk_pair_select=100,
+    mode='infer',  ## infer | eval
+    match_head='relation', ## siamese | relation
+    score_thr=0.8,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing

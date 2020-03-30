@@ -1,5 +1,5 @@
 # model setting
-imgs_per_gpu=6
+imgs_per_gpu=8
 model = dict(
     type='FasterRCNNPair',
     pretrained='torchvision://resnet50',
@@ -106,6 +106,9 @@ test_cfg = dict(
         nms_thr=0.6,
         min_bbox_size=0),
     topk_pair_select=100,
+    mode='infer', ## infer | eval
+    match_head='siamese', ## siamese | relation
+    score_thr=0.85,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing
@@ -158,16 +161,18 @@ data = dict(
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
         pipeline=train_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt',
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt',
         ),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt',    
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt',
+        # txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        # txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
         type=dataset_type,
@@ -176,10 +181,12 @@ data = dict(
         img_prefix=data_root + 'images/val2017/',
         # img_prefix=data_root + 'images/train2017/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt', 
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt'))
+        # txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        # txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
 # optimizer
-optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
@@ -187,7 +194,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[8, 11, 14])
+    step=[6, 9, 12])
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -201,7 +208,7 @@ log_config = dict(
 total_epochs = 15
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14_update_data'
+work_dir = './work_dirs/faster_rcnn_r50_fpn_1x_coco14_update_data_1'
 # load_from = None
 load_from = './work_dirs/faster_rcnn_r50_fpn_1x_20181010-3d1b3351.pth'
 resume_from = None

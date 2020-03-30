@@ -356,7 +356,6 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         score_siamese = self.siamese_matching_head.forward_test(pairs, pairs_feats)
         score_siamese = pairs[:,0,4] *  pairs[:,1,4] * torch.sqrt(torch.sigmoid(score_siamese))
-        # print("Pair ",score_siamese.shape)
 
         pair_score_relation = self.relation_matching_head.forward_test(pairs, pairs_feats)
         pair_score_relation_reverse = self.relation_matching_head.forward_test(pairs, pairs_feats_reverse)
@@ -364,10 +363,28 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         stage2_results = [result_outputs[0]['bbox_results'],result_outputs[1]['bbox_results']]
 
-        # return pairs[torch.argsort(score_siamese)[-self.test_cfg.topk_pair_select:]], stage2_results
-
         ## For test single image,just use top 10
-        return pairs[torch.argsort(scores_relation)[-10:]], stage2_results
+        score_thr = self.test_cfg.score_thr
+        topk = self.test_cfg.topk_pair_select
+
+        if "relation" in self.test_cfg.match_head:
+            ## using score relation
+            score_outs = scores_relation[torch.argsort(scores_relation)[-topk:]]
+            pair_outs = pairs[torch.argsort(scores_relation)[-topk:]]
+            print(score_outs)
+        else:
+            ##using score siamese
+            score_outs = score_siamese[torch.argsort(score_siamese)[-topk:]]
+            pair_outs = pairs[torch.argsort(score_siamese)[-topk:]]
+            print(score_outs)
+
+        pair_outs = pair_outs[score_outs > score_thr]
+        score_outs = score_outs[score_outs > score_thr]
+
+        if "eval" in self.test_cfg.mode:
+            return pairs[torch.argsort(score_siamese)[-topk:]], stage2_results
+        else:
+            return pair_outs, stage2_results, score_outs
 
 
     def simple_test_single(self, img, img_meta, proposals=None, rescale=False):
