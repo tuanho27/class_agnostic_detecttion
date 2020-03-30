@@ -108,7 +108,7 @@ test_cfg = dict(
     topk_pair_select=100,
     mode='infer', ## infer | eval
     match_head='siamese', ## siamese | relation
-    score_thr=0.85,
+    score_thr=0.80,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing
@@ -150,41 +150,28 @@ data = dict(
     imgs_per_gpu=imgs_per_gpu,
     workers_per_gpu=4,
     train=dict(
-        # type=dataset_type,
-        # ann_file=data_root + 'annotations/instances_val2017.json',
-        # img_prefix=data_root + 'images/val2017/',
-        # pipeline=train_pipeline,
-        # txt_file = './list_pairs_img_coco2014.txt', 
-        # txt_eval_file = './list_pairs_img_test_coco2014.txt',
-        #
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/train2017/',
         pipeline=train_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt',
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt',
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/val2017/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt',    
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt',
-        # txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
-        # txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt',    
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt',
         ),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
-        # ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/val2017/',
-        # img_prefix=data_root + 'images/train2017/',
         pipeline=test_pipeline,
-        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014_new_data.txt', 
-        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014_new_data.txt'))
-        # txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
-        # txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
+        txt_file = './ccdetection/configs/faster_rcnn/list_pairs_img_coco2014.txt', 
+        txt_eval_file = './ccdetection/configs/faster_rcnn/list_pairs_img_test_coco2014.txt'))
 # optimizer
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))

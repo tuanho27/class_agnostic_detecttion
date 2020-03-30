@@ -18,13 +18,14 @@ from torch.utils.data import Dataset, DataLoader
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('config', help='train config file path')
-    parser.add_argument('--work_dir', help='the dir to save logs and models')
     parser.add_argument(
-        '--resume_from', help='the checkpoint file to resume from')
+        '--output', help='the output file contains pair id')
+    parser.add_argument('--work_dir', help='the dir to save logs and models')
     parser.add_argument(
         '--validate',
         action='store_true',
         help='whether to evaluate the checkpoint during training')
+    parser.add_argument('--num_sample', type=int, default=None, help='random seed')
     parser.add_argument(
         '--gpus',
         type=int,
@@ -76,13 +77,20 @@ def main():
 
     # init logger before other steps
     logger = get_root_logger(cfg.log_level)
+    if  args.validate:
+        cfg.data.test.txt_file = args.output
+        datasets = [build_dataset(cfg.data.test)]
+    else:
+        cfg.data.train.txt_file = args.output
+        datasets = [build_dataset(cfg.data.train)]
 
-    datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:
         datasets.append(build_dataset(cfg.data.val))
     
     ## To Gen Pair dataset
     datasets = datasets if isinstance(datasets, (list, tuple)) else [datasets]
+    cfg.data.imgs_per_gpu = 1
+    cfg.data.workers_per_gpu = 1
     data_loaders = [ 
         build_dataloader(
             ds,
@@ -96,7 +104,8 @@ def main():
     for i, data_batch in enumerate(data_loaders[0]):
         print("Generate ...")
         count +=1
-
+        if count == args.num_sample:
+            break
 
 if __name__ == '__main__':
     main()

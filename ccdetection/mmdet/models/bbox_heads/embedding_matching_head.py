@@ -87,7 +87,6 @@ class SiameseMatching(nn.Module):
             # pairs_fc = [self.siamese_embedding(pairs_feats[i][j].view(-1)) for j in range(2)]
             pairs_fc = [self.siamese_embedding(feat[j].view(-1)) for j in range(2)]
             if self.dist_mode == 'cosine':
-                # dist_pairs.append(F.relu(self.dist(pairs_fc[0],pairs_fc[1])))
                 dist_pairs.append(self.dist(pairs_fc[0],pairs_fc[1]))
             else:
                 dist_pairs.append((pairs_fc[0] - pairs_fc[1]).pow(2).sum(1))

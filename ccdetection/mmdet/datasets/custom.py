@@ -418,13 +418,11 @@ class CustomPairGenerateDataset(Dataset):
                  seg_prefix=None,
                  proposal_file=None,
                  txt_file = './list_pairs_img_coco2014.txt', 
-                 txt_eval_file = './list_pairs_img_test_coco2014.txt',
+                 txt_eval_file = None, 
                  counter = 0,
                  test_mode=False, num_samples=None, instaboost=False):
         
         self.txt_file = txt_file #open(txt_file,"w")
-        # self.txt_eval_file = open(txt_eval_file,"w")
-
         self.class_ignore_idx = [self.CLASSES.index(i) for i in self.CLASSES_IGNORE]
         if "coco" in self.txt_file:
             self.class_interest = [self.CLASSES.index(i) for i in self.CLASSES_TRAIN]
@@ -460,18 +458,12 @@ class CustomPairGenerateDataset(Dataset):
             self.proposals = self.load_proposals(self.proposal_file)
         else:
             self.proposals = None
-        ## filter images with no annotation during training
-        #if not test_mode:
-        #    valid_inds = self._filter_imgs()
-        #    self.img_infos = [self.img_infos[i] for i in valid_inds]
-        #    if self.proposals is not None:
-        #        self.proposals = [self.proposals[i] for i in valid_inds]
         # set group flag for the sampler
         if not self.test_mode:
             self._set_group_flag()
         # processing pipeline
         self.pipeline = Compose(pipeline)
-        # self.prepare_train_img(0)
+        # self.prepare_img(0)
         
     def __len__(self):
         return len(self.img_infos)
@@ -530,16 +522,14 @@ class CustomPairGenerateDataset(Dataset):
         return np.random.choice(pool)
 
     def __getitem__(self, idx):
-        if self.test_mode:
-            return self.prepare_test_img(idx)
         while True:
-            data = self.prepare_train_img(idx)
+            data = self.prepare_img(idx)
             if data is None:
                 idx = self._rand_another(idx)
                 continue
             return data
-            
-    def prepare_train_img(self, idx):
+
+    def prepare_img(self, idx):
         idx0 = idx
         img0_info = self.img_infos[int(idx0)]
         ann0_info = self.get_ann_info(int(idx0))
@@ -550,41 +540,40 @@ class CustomPairGenerateDataset(Dataset):
         self.counter+=1
         
         ################# Add to generate COCO data with 15 classes ##############
-        class_common =  set(ann0_info['labels']) & set(self.class_interest)
-        if class_common:
-             for idx1 in range(1,len(self.img_infos)):
+        if "coco" in self.txt_file:
+            class_common =  set(ann0_info['labels']) & set(self.class_interest)
+            if class_common:
+                for idx1 in range(1,len(self.img_infos)):
+                    if idx1 != idx0:
+                        img1_info = self.img_infos[idx1]
+                        ann1_info = self.get_ann_info(idx1)
+                        if set(ann1_info['labels']) & class_common:
+                            list_pairs.append(idx1)
+
+            if len(list_pairs) > 0:
+                for i in range(0,16):
+                    idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
+                    print("IDX ", idx0, idx1)
+                    line = str(idx0)  + "," + str(idx1) + "\n"
+                    with open(self.txt_file, 'a') as the_file:
+                        the_file.write(str(line))
+        else:
+            ################# Generate VOC data #####################
+            for idx1 in range(1,len(self.img_infos)):
                 if idx1 != idx0:
                     img1_info = self.img_infos[idx1]
                     ann1_info = self.get_ann_info(idx1)
-                    if set(ann1_info['labels']) & class_common:
-                        # print("LABEL0: ", ann0_info['labels'])
-                        # print("LABEL1: ", ann1_info['labels'])
+                    if self.common_member(ann0_info['labels'], ann1_info['labels']):
                         list_pairs.append(idx1)
 
-        if len(list_pairs) > 0:
-            for i in range(0,16):
-                idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
-                print("IDX ", idx0, idx1)
-                line = str(idx0)  + "," + str(idx1) + "\n"
-                with open(self.txt_file, 'a') as the_file:
-                    the_file.write(str(line))
-
-        ################## Generate VOC data #####################
-        # for idx1 in range(1,len(self.img_infos)):
-        #     if idx1 != idx0:
-        #         img1_info = self.img_infos[idx1]
-        #         ann1_info = self.get_ann_info(idx1)
-        #         if self.common_member(ann0_info['labels'], ann1_info['labels']):
-        #             list_pairs.append(idx1)
-
-        # if len(list_pairs) > 0:
-        #     for i in range(0,16):
-        #         idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
-        #         if idx1 != idx0:
-        #             print("IDX ", idx0, idx1)
-        #             line = str(idx0)  + "," + str(idx1) + "\n"
-        #             with open(self.txt_file, 'a') as the_file:
-        #                 the_file.write(str(line))
+            if len(list_pairs) > 0:
+                for i in range(0,16):
+                    idx1 = list_pairs[random.randint(1,len(list_pairs)-1)]
+                    if idx1 != idx0:
+                        print("IDX ", idx0, idx1)
+                        line = str(idx0)  + "," + str(idx1) + "\n"
+                        with open(self.txt_file, 'a') as the_file:
+                            the_file.write(str(line))
 
         if self.counter == len(self.img_infos) - 1:
             self.txt_file.close()

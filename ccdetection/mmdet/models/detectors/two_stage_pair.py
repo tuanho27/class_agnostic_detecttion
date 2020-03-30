@@ -371,12 +371,12 @@ class TwoStagePairDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             ## using score relation
             score_outs = scores_relation[torch.argsort(scores_relation)[-topk:]]
             pair_outs = pairs[torch.argsort(scores_relation)[-topk:]]
-            print(score_outs)
+            # print(score_outs)
         else:
             ##using score siamese
             score_outs = score_siamese[torch.argsort(score_siamese)[-topk:]]
             pair_outs = pairs[torch.argsort(score_siamese)[-topk:]]
-            print(score_outs)
+            # print(score_outs)
 
         pair_outs = pair_outs[score_outs > score_thr]
         score_outs = score_outs[score_outs > score_thr]

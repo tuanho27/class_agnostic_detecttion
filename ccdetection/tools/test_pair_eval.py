@@ -188,6 +188,7 @@ def main():
         torch.backends.cudnn.benchmark = True
     cfg.model.pretrained = None
     cfg.data.test.test_mode = True
+    cfg.test_cfg.mode = 'eval'
     # init distributed env first, since logger depends on the dist info.
     if args.launcher == 'none':
         distributed = False

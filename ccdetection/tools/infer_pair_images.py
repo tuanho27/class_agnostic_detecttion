@@ -25,8 +25,15 @@ def parse_args():
 	parser.add_argument('--checkpoint', help='checkpoint file')
 	parser.add_argument('--img_file',nargs="+", default=[], type=str, help='Image path to infering')
 	parser.add_argument('--img_folder', help='folder of test images')
+	parser.add_argument('--output_folder', help='output video/images file', default='./outputs')
 	args = parser.parse_args()
 	return args
+
+def mkdir_if_not_exist(path):
+    if not isinstance(path, str):
+        path = os.path.join(*path)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def main():
     args = parse_args()
@@ -40,48 +47,18 @@ def main():
         print("\nCould not find the image folder for infering, please check!!!")
         return 0
     img_files = sorted(glob.glob(f'{args.img_folder}/*.png')) #glob.glob(f'{args.img_folder}/*.png') #
-
-    #############################################
-    ### Test all dataset in data folder
-    # out_folder= './testing/outputs/{}'.format(args.img_folder.split("/")[-1])
-    # if not os.path.isdir(out_folder):
-    #     os.mkdir(out_folder)
-
-    # model = init_detector(args.config, args.checkpoint, device='cuda')
-    # print("Start infer model !!!\n")
-
-    # ### test_folder
-    # count = 0
-    # for frame, image in enumerate(img_files):
-    #     count+=1
-    #     results = inference_pair_detector(model, [img_files[frame],img_files[frame+1]])
-    #     img0 = mmcv.imread(img_files[frame])    
-    #     img0 = mmcv.imresize(img0, size, return_scale=True)[0]
-    #     # img1 = mmcv.imflip(img0) ## just flip to write, the flip is done by load data function
-    #     img1 = mmcv.imread(img_files[frame+1])    
-    #     img1 = mmcv.imresize(img1, size, return_scale=True)[0]
-    #     # show the results
-    #     for i, out in enumerate(results):
-    #         bbox_int_0 = out[0].cpu().numpy().astype(np.int32)
-    #         bbox_int_1 = out[1].cpu().numpy().astype(np.int32)
-    #         cl = random.randint(1,len(colors)-1)
-    #         cv2.rectangle(img0, (bbox_int_0[0], bbox_int_0[1]), (bbox_int_0[2], bbox_int_0[3]), colors[cl], thickness=2)
-    #         cv2.rectangle(img1, (bbox_int_1[0], bbox_int_1[1]), (bbox_int_1[2], bbox_int_1[3]), colors[cl], thickness=2)
-
-    #     img = np.concatenate((img0, img1), axis=1) 
-    #     cv2.imwrite("./{}/{}_{}.jpg".format(out_folder,img_files[frame].split(".")[0].split("/")[-1], frame), img)
-    ##     if count == 2:
-    ##         break
-
+    mkdir_if_not_exist(args.output_folder)
     ###############################################
     ### Test single images 
+    ###############################################
+
     #cat 
-    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000215.jpg"
-    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000122.jpg"
+    img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000215.jpg"
+    img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/000122.jpg"
 
     #sheep 
-    img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/006678.jpg"
-    img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/002209.jpg"
+    # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/006678.jpg"
+    # img1_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/002209.jpg"
     # img0_file = "/home/member/Workspace/dataset/VOC/VOCdevkit/VOC2007/JPEGImages/007230.jpg" ## two sheeps
 
     #horse 
@@ -104,7 +81,7 @@ def main():
 
     #toyota images
     # img0_file  = img_files[1]
-    # img1_file = img_files[200]
+    # img1_file = img_files[100]
 
     model = init_detector(args.config, args.checkpoint, device='cuda')
     print("Start infer model !!!\n")
@@ -132,15 +109,49 @@ def main():
         centres_0=(0.5*(out[0][0] + out[0][2]), 0.5*(out[0][1] + out[0][3])) 
         centres_1=(0.5*(out[1][0] + out[1][2]) + size[0], 0.5*(out[1][1] + out[1][3])) 
 
-        # import ipdb; ipdb.set_trace()
         cv2.line(img, (int(centres_0[0]),int(centres_0[1])), (int(centres_1[0]),int(centres_1[1])), (0, 64, 255), 2)
-        cv2.putText(img,'Match score: %f'%score, (int((centres_0[0]+centres_1[0])*0.5),int((centres_0[1]+centres_1[1])*0.5)), 
+        cv2.putText(img,str(np.round(score.cpu().numpy(),3)), (int((centres_0[0]+centres_1[0])*0.5),int((centres_0[1]+centres_1[1])*0.5)), 
+        # cv2.putText(img,'Match score: %f'%score, (int((centres_0[0]+centres_1[0])*0.5),int((centres_0[1]+centres_1[1])*0.5)), 
                                                                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (256,64,0), 2)
-    cv2.imwrite("./testing/False_sheep_output_pair_test.jpg", img)
+    cv2.imwrite("./{}/output_pair_test.jpg".format(args.output_folder), img)
     
     # show_result(img0, stage2_results[0], model.CLASSES,0.3, show=False,out_file="./testing/output_0.png")
     # show_result(img1, stage2_results[1], model.CLASSES,0.3, show=False,out_file="./testing/output_1.png")
 
+
+    #############################################
+    ### Test all dataset in data folder
+    ###############################################
+
+    # out_folder= './testing/outputs/{}'.format(args.img_folder.split("/")[-1])
+    # if not os.path.isdir(out_folder):
+    #     os.mkdir(out_folder)
+
+    # model = init_detector(args.config, args.checkpoint, device='cuda')
+    # print("Start infer model !!!\n")
+
+    # ### test_folder
+    # count = 0
+    # for frame, image in enumerate(img_files):
+    #     count+=1
+    #     results = inference_pair_detector(model, [img_files[frame],img_files[frame+1]])
+    #     img0 = mmcv.imread(img_files[frame])    
+    #     img0 = mmcv.imresize(img0, size, return_scale=True)[0]
+    #     # img1 = mmcv.imflip(img0) ## just flip to write, the flip is done by load data function
+    #     img1 = mmcv.imread(img_files[frame+1])    
+    #     img1 = mmcv.imresize(img1, size, return_scale=True)[0]
+    #     # show the results
+    #     for i, out in enumerate(results):
+    #         bbox_int_0 = out[0].cpu().numpy().astype(np.int32)
+    #         bbox_int_1 = out[1].cpu().numpy().astype(np.int32)
+    #         cl = random.randint(1,len(colors)-1)
+    #         cv2.rectangle(img0, (bbox_int_0[0], bbox_int_0[1]), (bbox_int_0[2], bbox_int_0[3]), colors[cl], thickness=2)
+    #         cv2.rectangle(img1, (bbox_int_1[0], bbox_int_1[1]), (bbox_int_1[2], bbox_int_1[3]), colors[cl], thickness=2)
+
+    #     img = np.concatenate((img0, img1), axis=1) 
+    #     cv2.imwrite("./{}/{}_{}.jpg".format(args.output_folder,img_files[frame].split(".")[0].split("/")[-1], frame), img)
+    ##     if count == 2:
+    ##         break
 
 if __name__ == '__main__':
     main()

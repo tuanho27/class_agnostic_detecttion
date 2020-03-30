@@ -108,7 +108,7 @@ test_cfg = dict(
     topk_pair_select=100,
     mode='infer',  ## infer | eval
     match_head='relation', ## siamese | relation
-    score_thr=0.8,
+    score_thr=0.95,
     rcnn=dict(
         score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
     # soft-nms is also supported for rcnn testing
@@ -150,12 +150,6 @@ data = dict(
     imgs_per_gpu=imgs_per_gpu,
     workers_per_gpu=8,
     train=dict(
-        # type=dataset_type,
-        # ann_file=data_root + 'VOC2007TEST/val.txt',
-        # img_prefix=data_root + 'VOC2007TEST/',
-        # pipeline=train_pipeline,
-        # txt_file = './list_pairs_img_voc2007.txt',
-        # txt_eval_file = './list_pairs_img_test_voc2007.txt'), 
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/trainval.txt',
         img_prefix=data_root + 'VOC2007/',
